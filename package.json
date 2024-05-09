@@ -1,0 +1,14 @@
+{
+	"name": "glyph-ui",
+	"version": "1.0.0",
+	"description": "frontend frameworks are magic so I'm building to learn what really happens",
+	"main": "index.js",
+	"private": true,
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"serve:examples": "dlx http-server . -o ./examples/"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC"
+}
