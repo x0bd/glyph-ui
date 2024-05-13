@@ -1,0 +1,17 @@
+{
+	"name": "glyphui",
+	"version": "1.0.0",
+	"private": true,
+	"description": "frontend frameworks are magic so i am building one.",
+	"main": "index.js",
+	"workspaces": [
+		"packages/runtime"
+	],
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"serve:examples": "npx http-server . -o ./examples/"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT"
+}
