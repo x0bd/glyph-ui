@@ -1,3 +1,17 @@
+// https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes
+// https://www.w3.org/TR/SVGTiny12/attributeTable.html#PropertyTable
+// https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes
+// https://developer.mozilla.org/en-US/docs/Glossary/IDL
+
+/**
+ * Sets the attributes of an element.
+ *
+ * It doesn't remove attributes that are not present in the new attributes,
+ * except in the case of the `class` attribute.
+ *
+ * @param {HTMLElement} el target element
+ * @param {import('./h').ElementVNodeProps} attrs attributes to set
+ */
 export function setAttributes(el, attrs) {
 	const { class: className, style, ...otherAttrs } = attrs;
 
@@ -16,7 +30,6 @@ export function setAttributes(el, attrs) {
 	}
 }
 
-// TODO: implement setClass
 function setClass(el, className) {
 	el.className = "";
 
@@ -29,7 +42,6 @@ function setClass(el, className) {
 	}
 }
 
-// TODO: implement setStyle
 export function setStyle(el, name, value) {
 	el.style[name] = value;
 }
@@ -38,7 +50,6 @@ export function removeStyle(el, name) {
 	el.style[name] = null;
 }
 
-// TODO: implement setAttribute
 export function setAttributes(el, name, value) {
 	if (value == null) {
 		removeAttribute(el, name);

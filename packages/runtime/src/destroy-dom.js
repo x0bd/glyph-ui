@@ -1,6 +1,14 @@
 import { removeEventListeners } from "./events";
 import { DOM_TYPES } from "./h";
 
+/**
+ * Unmounts the DOM nodes for a virtual DOM tree recursively.
+ *
+ * Removes all `el` references from the vdom tree and removes all the event
+ * listeners from the DOM.
+ *
+ * @param {import('./h').VNode} vdom the virtual DOM node to destroy
+ */
 export function destroyDOM(vdom) {
 	const { type } = vdom;
 
