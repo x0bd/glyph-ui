@@ -22,7 +22,7 @@ export function addEventListener(eventName, handler, el) {
  * @param {import('./component').Component} [hostComponent] The component that the listeners are added to
  * @returns {object} The added listeners
  */
-export function addEventsListeners(listeners = {}, el) {
+export function addEventListeners(listeners = {}, el) {
 	const addedListeners = {};
 
 	Object.entries(listeners).forEach(([eventName, handler]) => {

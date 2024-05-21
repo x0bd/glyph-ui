@@ -50,7 +50,7 @@ export function removeStyle(el, name) {
 	el.style[name] = null;
 }
 
-export function setAttributes(el, name, value) {
+export function setAttribute(el, name, value) {
 	if (value == null) {
 		removeAttribute(el, name);
 	} else if (name.startsWith("data-")) {
