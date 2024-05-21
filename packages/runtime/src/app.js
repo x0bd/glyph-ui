@@ -21,7 +21,7 @@ import { mountDOM } from "./mount-dom";
  * @returns {Application} the app object
  */
 
-export function createApp({ state, view, reducers }) {
+export function createApp({ state, view, reducers = {} }) {
 	let parentEl = null;
 	let vdom = null;
 

@@ -110,7 +110,7 @@ function createElementNode(vdom, parentEl) {
  * @param {import('./component').Component} [hostComponent] The component that the listeners are added to
  */
 function addProps(el, props, vdom) {
-	const { on: props, ...attrs } = props;
+	const { on: events, ...attrs } = props;
 
 	vdom.listeners = addEventListeners(events, el);
 	setAttributes(el, attrs);
