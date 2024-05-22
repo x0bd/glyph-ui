@@ -1,4 +1,4 @@
-import { createApp, h, hFragment } from "../../packages/runtime/dist/glyphui";
+import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1";
 
 const state = {
 	currentTodo: "",
@@ -7,7 +7,7 @@ const state = {
 		original: null,
 		edited: null,
 	},
-	todos: ["Prepare Coffee", "Walk the dog", "debug app"],
+	todos: ["Walk the dog", "Water the plants", "Bro"],
 };
 
 const reducers = {
@@ -60,7 +60,7 @@ const reducers = {
 
 function App(state, emit) {
 	return hFragment([
-		h("h1", {}, ["My Todos"]),
+		h("h1", {}, ["My TODOs"]),
 		CreateTodo(state, emit),
 		TodoList(state, emit),
 	]);
@@ -86,7 +86,7 @@ function CreateTodo({ currentTodo }, emit) {
 		h(
 			"button",
 			{
-				disabled: currentTodo.length >= 3,
+				disabled: currentTodo.length < 3,
 				on: { click: () => emit("add-todo") },
 			},
 			["Add"]
@@ -103,6 +103,8 @@ function TodoList({ todos, edit }, emit) {
 }
 
 function TodoItem({ todo, i, edit }, emit) {
+	const isEditing = edit.idx === i;
+
 	return isEditing
 		? h("li", {}, [
 				h("input", {
@@ -111,44 +113,24 @@ function TodoItem({ todo, i, edit }, emit) {
 						input: ({ target }) => emit("edit-todo", target.value),
 					},
 				}),
+				h("button", { on: { click: () => emit("save-edited-todo") } }, [
+					"Save",
+				]),
 				h(
 					"button",
-					{
-						on: {
-							click: () => emit("save-edited-todo"),
-						},
-					},
-					["Save"]
-				),
-				h(
-					"button",
-					{
-						on: {
-							click: () => emit("cancel-editing-todo"),
-						},
-					},
+					{ on: { click: () => emit("cancel-editing-todo") } },
 					["Cancel"]
 				),
 		  ])
 		: h("li", {}, [
 				h(
 					"span",
-					{
-						on: {
-							dblclick: () => emit("start-editing-todo", i),
-						},
-					},
+					{ on: { dblclick: () => emit("start-editing-todo", i) } },
 					[todo]
 				),
-				h(
-					"button",
-					{
-						on: {
-							click: () => emit("remove-todo", i),
-						},
-					},
-					["Done"]
-				),
+				h("button", { on: { click: () => emit("remove-todo", i) } }, [
+					"Done",
+				]),
 		  ]);
 }
 
