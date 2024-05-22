@@ -9,7 +9,7 @@
 	],
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"serve:examples": "npx http-server . -o ./examples/"
+		"serve:examples": "npx http-server . -c-1 -o ./examples/"
 	},
 	"keywords": [],
 	"author": "",
