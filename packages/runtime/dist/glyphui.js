@@ -1,7 +1,3 @@
-function addEventListener(eventName, handler, el) {
-	el.addEventListener(eventName, handler);
-	return handler;
-}
 function addEventListeners(listeners = {}, el) {
 	const addedListeners = {};
 	Object.entries(listeners).forEach(([eventName, handler]) => {
@@ -9,6 +5,10 @@ function addEventListeners(listeners = {}, el) {
 		addedListeners[eventName] = listener;
 	});
 	return addedListeners;
+}
+function addEventListener(eventName, handler, el) {
+	el.addEventListener(eventName, handler);
+	return handler;
 }
 function removeEventListeners(listeners = {}, el) {
 	Object.entries(listeners).forEach(([eventName, handler]) => {
@@ -18,6 +18,12 @@ function removeEventListeners(listeners = {}, el) {
 
 function withoutNulls(arr) {
 	return arr.filter((item) => item != null);
+}
+
+function assert(condition, message = "Assertion failed") {
+	if (!condition) {
+		throw new Error(message);
+	}
 }
 
 const DOM_TYPES = {
@@ -33,22 +39,25 @@ function h(tag, props = {}, children = []) {
 		type: DOM_TYPES.ELEMENT,
 	};
 }
-function mapTextNodes(children) {
-	return children.map((child) => {
-	});
-}
 function hString(str) {
 	return { type: DOM_TYPES.TEXT, value: str };
 }
 function hFragment(vNodes) {
+	assert(Array.isArray(vNodes), "hFragment expects an array of vNodes");
 	return {
 		type: DOM_TYPES.FRAGMENT,
 		children: mapTextNodes(withoutNulls(vNodes)),
 	};
 }
+function mapTextNodes(children) {
+	return children.map((child) =>
+		typeof child === "string" ? hString(child) : child
+	);
+}
 
 function destroyDOM(vdom) {
-	const { type } = vdom;
+	const { type, el } = vdom;
+	assert(!!el, "Can only destroy DOM nodes that have been mounted");
 	switch (type) {
 		case DOM_TYPES.TEXT: {
 			removeTextNode(vdom);
@@ -70,10 +79,12 @@ function destroyDOM(vdom) {
 }
 function removeTextNode(vdom) {
 	const { el } = vdom;
+	assert(el instanceof Text);
 	el.remove();
 }
 function removeElementNode(vdom) {
 	const { el, children, listeners } = vdom;
+	assert(el instanceof HTMLElement);
 	el.remove();
 	children.forEach(destroyDOM);
 	if (listeners) {
@@ -82,7 +93,8 @@ function removeElementNode(vdom) {
 	}
 }
 function removeFragmentNodes(vdom) {
-	const { children } = vdom;
+	const { el, children } = vdom;
+	assert(el instanceof HTMLElement);
 	children.forEach(destroyDOM);
 }
 
@@ -122,6 +134,7 @@ class Dispatcher {
 
 function setAttributes(el, attrs) {
 	const { class: className, style, ...otherAttrs } = attrs;
+	delete otherAttrs.key;
 	if (className) {
 		setClass(el, className);
 	}
@@ -134,18 +147,6 @@ function setAttributes(el, attrs) {
 		setAttribute(el, name, value);
 	}
 }
-function setClass(el, className) {
-	el.className = "";
-	if (typeof className === "string") {
-		el.className = className;
-	}
-	if (Array.isArray(className)) {
-		el.classList.add(...className);
-	}
-}
-function setStyle(el, name, value) {
-	el.style[name] = value;
-}
 function setAttribute(el, name, value) {
 	if (value == null) {
 		removeAttribute(el, name);
@@ -156,8 +157,24 @@ function setAttribute(el, name, value) {
 	}
 }
 function removeAttribute(el, name) {
-	el[name] = null;
+	try {
+		el[name] = null;
+	} catch {
+		console.warn(`Failed to set "${name}" to null on ${el.tagName}`);
+	}
 	el.removeAttribute(name);
+}
+function setStyle(el, name, value) {
+	el.style[name] = value;
+}
+function setClass(el, className) {
+	el.className = "";
+	if (typeof className === "string") {
+		el.className = className;
+	}
+	if (Array.isArray(className)) {
+		el.classList.add(...className);
+	}
 }
 
 function mountDOM(vdom, parentEl) {
@@ -185,11 +202,6 @@ function createTextNode(vdom, parentEl) {
 	vdom.el = textNode;
 	parentEl.append(textNode);
 }
-function createFragmentNodes(vdom, parentEl) {
-	const { children } = vdom;
-	vdom.el = parentEl;
-	children.forEach((child) => mountDOM(child, parentEl));
-}
 function createElementNode(vdom, parentEl) {
 	const { tag, props, children } = vdom;
 	const element = document.createElement(tag);
@@ -202,6 +214,11 @@ function addProps(el, props, vdom) {
 	const { on: events, ...attrs } = props;
 	vdom.listeners = addEventListeners(events, el);
 	setAttributes(el, attrs);
+}
+function createFragmentNodes(vdom, parentEl) {
+	const { children } = vdom;
+	vdom.el = parentEl;
+	children.forEach((child) => mountDOM(child, parentEl));
 }
 
 function createApp({ state, view, reducers = {} }) {
@@ -230,13 +247,17 @@ function createApp({ state, view, reducers = {} }) {
 		mount(_parentEl) {
 			parentEl = _parentEl;
 			renderApp();
+			return this;
 		},
-		umount() {
+		unmount() {
 			destroyDOM(vdom);
 			vdom = null;
 			subscriptions.forEach((unsubscribe) => unsubscribe());
 		},
+		emit(eventName, payload) {
+			emit(eventName, payload);
+		},
 	};
 }
 
-export { createApp, h, hFragment, hString };
+export { DOM_TYPES, createApp, h, hFragment, hString };
