@@ -1,6 +1,6 @@
 {
 	"name": "glyphui",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "a frontend framework built to learn how frontend frameworks work.",
 	"main": "dist/glyphui.js",
 	"files": [
