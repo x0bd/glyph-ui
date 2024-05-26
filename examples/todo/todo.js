@@ -7,7 +7,11 @@ const state = {
 		original: null,
 		edited: null,
 	},
-	todos: ["Walk the dog", "Water the plants", "Bro"],
+	todos: [
+		"watch rammstein documentary",
+		"feed the cat",
+		"debug weird dom Bug",
+	],
 };
 
 const reducers = {
@@ -68,7 +72,7 @@ function App(state, emit) {
 
 function CreateTodo({ currentTodo }, emit) {
 	return h("div", {}, [
-		h("label", { for: "todo-input" }, ["New TODO"]),
+		h("label", { for: "todo-input" }, ["new todo"]),
 		h("input", {
 			type: "text",
 			id: "todo-input",
