@@ -1,4 +1,4 @@
-import { createApp, h, hFragment } from "https://unpkg.com/fe-fwk@1";
+import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1.1.0";
 
 const state = {
 	currentTodo: "",
@@ -7,7 +7,11 @@ const state = {
 		original: null,
 		edited: null,
 	},
-	todos: ["Walk the dog", "Water the plants", "Bro"],
+	todos: [
+		"watch rammstein documentary",
+		"feed the cat",
+		"debug weird dom Bug",
+	],
 };
 
 const reducers = {
