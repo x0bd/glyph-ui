@@ -1,21 +1,13 @@
-import { DOM_TYPES } from "./h";
 import { setAttributes } from "./attributes";
 import { addEventListeners } from "./events";
+import { DOM_TYPES } from "./h";
 
 /**
  * Creates the DOM nodes for a virtual DOM tree, mounts them in the DOM, and
  * modifies the vdom tree to include the corresponding DOM nodes and event listeners.
  *
- * If an index is given, the created DOM node is inserted at that index in the parent element.
- * Otherwise, it is appended to the parent element.
- *
- * If a host component is given, the event listeners attached to the DOM nodes are bound to
- * the host component.
- *
- * @param {import('./h').VNode} vdom the virtual DOM node to mount
+ * @param {object} oldVDom the virtual DOM node to mount
  * @param {HTMLElement} parentEl the host element to mount the virtual DOM node to
- * @param {number} [index] the index at the parent element to mount the virtual DOM node to
- * @param {import('./component').Component} [hostComponent] The component that the listeners are added to
  */
 export function mountDOM(vdom, parentEl) {
 	switch (vdom.type) {
@@ -50,9 +42,8 @@ export function mountDOM(vdom, parentEl) {
  *
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/Text}
  *
- * @param {import('./h').TextVNode} vdom the virtual DOM node of type "text"
+ * @param {object} vdom the virtual DOM node of type "text"
  * @param {Element} parentEl the host element to mount the virtual DOM node to
- * @param {number} [index] the index at the parent element to mount the virtual DOM node to
  */
 function createTextNode(vdom, parentEl) {
 	const { value } = vdom;
@@ -64,32 +55,14 @@ function createTextNode(vdom, parentEl) {
 }
 
 /**
- * Creates the nodes for the children of a virtual DOM fragment node and appends them to the
- * parent element.
- *
- * @param {import('./h').FragmentVNode} vdom the virtual DOM node of type "fragment"
- * @param {Element} parentEl the host element to mount the virtual DOM node to
- * @param {number} [index] the index at the parent element to mount the virtual DOM node to
- * @param {import('./component').Component} [hostComponent] The component that the listeners are added to
- */
-function createFragmentNodes(vdom, parentEl) {
-	const { children } = vdom;
-	vdom.el = parentEl;
-
-	children.forEach((child) => mountDOM(child, parentEl));
-}
-
-/**
  * Creates the HTML element for a virtual DOM element node and its children recursively.
  * The created `Element` is added to the `el` property of the vdom.
  *
  * If the vdom includes event listeners, these are added to the vdom object, under the
  * `listeners` property.
  *
- * @param {import('./h').ElementVNode} vdom the virtual DOM node of type "element"
+ * @param {object} vdom the virtual DOM node of type "element"
  * @param {Element} parentEl the host element to mount the virtual DOM node to
- * @param {number} [index] the index at the parent element to mount the virtual DOM node to
- * @param {import('./component').Component} [hostComponent] The component that the listeners are added to
  */
 function createElementNode(vdom, parentEl) {
 	const { tag, props, children } = vdom;
@@ -102,16 +75,29 @@ function createElementNode(vdom, parentEl) {
 	parentEl.append(element);
 }
 
-/**
- * Adds the attributes and event listeners to an element.
- *
- * @param {Element} el The element to add the attributes to
- * @param {import('./h').ElementVNode} vdom The vdom node
- * @param {import('./component').Component} [hostComponent] The component that the listeners are added to
- */
 function addProps(el, props, vdom) {
 	const { on: events, ...attrs } = props;
 
 	vdom.listeners = addEventListeners(events, el);
 	setAttributes(el, attrs);
+}
+
+/**
+ * Creates the fragment for a virtual DOM fragment node and its children recursively.
+ * The vdom's `el` property is set to be the `parentEl` passed to the function.
+ * This is because a fragment loses its children when it is appended to the DOM, so
+ * we can't use it to reference the fragment's children.
+ *
+ * Note that `DocumentFragment` is a subclass of `Node`, but not of `Element`.
+ *
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment}
+ *
+ * @param {object} vdom the virtual DOM node of type "fragment"
+ * @param {Element} parentEl the host element to mount the virtual DOM node to
+ */
+function createFragmentNodes(vdom, parentEl) {
+	const { children } = vdom;
+	vdom.el = parentEl;
+
+	children.forEach((child) => mountDOM(child, parentEl));
 }

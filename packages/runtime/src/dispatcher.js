@@ -5,7 +5,6 @@
  * The dispatcher also allows registering handler functions that run after
  * a command is handled.
  */
-
 export class Dispatcher {
 	#subs = new Map();
 	#afterHandlers = [];

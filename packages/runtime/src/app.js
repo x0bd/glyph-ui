@@ -3,24 +3,13 @@ import { Dispatcher } from "./dispatcher";
 import { mountDOM } from "./mount-dom";
 
 /**
- * @typedef Application
- * @type {object}
+ * Creates an application with the given top-level view, initial state and reducers.
+ * A reducer is a function that takes the current state and a payload and returns
+ * the new state.
  *
- * @property {(parentEl: HTMLElement) => void} mount - Mounts the application into the DOM.
- * @property {function} unmount - Unmounts the application from the DOM.
+ * @param {object} config the configuration object, containing the view, reducers and initial state
+ * @returns {object} the app object
  */
-
-/**
- * Creates an application with the given root component (the top-level component in the view tree).
- * When the application is mounted, the root component is instantiated with the given props
- * and mounted into the DOM.
- *
- * @param {import('./component').Component} RootComponent the top-level component of the application's view tree
- * @param {Object.<string, Any>} props the top-level component's props
- *
- * @returns {Application} the app object
- */
-
 export function createApp({ state, view, reducers = {} }) {
 	let parentEl = null;
 	let vdom = null;
@@ -32,6 +21,8 @@ export function createApp({ state, view, reducers = {} }) {
 		dispatcher.dispatch(eventName, payload);
 	}
 
+	// Attach reducers
+	// Reducer = f(state, payload) => state
 	for (const actionName in reducers) {
 		const reducer = reducers[actionName];
 
@@ -41,6 +32,13 @@ export function createApp({ state, view, reducers = {} }) {
 		subscriptions.push(subs);
 	}
 
+	/**
+	 * Renders the application, by first destroying the previous DOM —if any— and
+	 * then mounting the new view.
+	 *
+	 * In the next version, a _reconciliation algorithm_ will be used to update the
+	 * DOM instead of destroying and mounting the whole view.
+	 */
 	function renderApp() {
 		if (vdom) {
 			destroyDOM(vdom);
@@ -51,15 +49,37 @@ export function createApp({ state, view, reducers = {} }) {
 	}
 
 	return {
+		/**
+		 * Mounts the application to the given host element.
+		 *
+		 * @param {Element} _parentEl the host element to mount the virtual DOM node to
+		 * @returns {object} the application object
+		 */
 		mount(_parentEl) {
 			parentEl = _parentEl;
 			renderApp();
+
+			return this;
 		},
 
-		umount() {
+		/**
+		 * Unmounts the application from the host element by destroying the associated
+		 * DOM and unsubscribing all subscriptions.
+		 */
+		unmount() {
 			destroyDOM(vdom);
 			vdom = null;
 			subscriptions.forEach((unsubscribe) => unsubscribe());
+		},
+
+		/**
+		 * Emits an event to the application.
+		 *
+		 * @param {string} eventName the name of the event to emit
+		 * @param {any} payload the payload to pass to the event listeners
+		 */
+		emit(eventName, payload) {
+			emit(eventName, payload);
 		},
 	};
 }

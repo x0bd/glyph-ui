@@ -1,4 +1,4 @@
-import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1.1.0";
+import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1.2.0";
 
 const state = {
 	currentTodo: "",

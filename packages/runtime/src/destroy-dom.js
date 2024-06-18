@@ -1,5 +1,6 @@
 import { removeEventListeners } from "./events";
 import { DOM_TYPES } from "./h";
+import { assert } from "./utils/assert";
 
 /**
  * Unmounts the DOM nodes for a virtual DOM tree recursively.
@@ -7,10 +8,12 @@ import { DOM_TYPES } from "./h";
  * Removes all `el` references from the vdom tree and removes all the event
  * listeners from the DOM.
  *
- * @param {import('./h').VNode} vdom the virtual DOM node to destroy
+ * @param {object} vdom the virtual DOM node to destroy
  */
 export function destroyDOM(vdom) {
-	const { type } = vdom;
+	const { type, el } = vdom;
+
+	assert(!!el, "Can only destroy DOM nodes that have been mounted");
 
 	switch (type) {
 		case DOM_TYPES.TEXT: {
@@ -36,15 +39,18 @@ export function destroyDOM(vdom) {
 	delete vdom.el;
 }
 
-// TODO: implement removeTextNode()
 function removeTextNode(vdom) {
 	const { el } = vdom;
+
+	assert(el instanceof Text);
+
 	el.remove();
 }
 
-// TODO: implement removeElementNode()
 function removeElementNode(vdom) {
 	const { el, children, listeners } = vdom;
+
+	assert(el instanceof HTMLElement);
 
 	el.remove();
 	children.forEach(destroyDOM);
@@ -55,8 +61,10 @@ function removeElementNode(vdom) {
 	}
 }
 
-// TODO: implement removeFragmentNodes()
 function removeFragmentNodes(vdom) {
-	const { children } = vdom;
+	const { el, children } = vdom;
+
+	assert(el instanceof HTMLElement);
+
 	children.forEach(destroyDOM);
 }
