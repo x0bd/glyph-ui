@@ -1,0 +1,55 @@
+body {
+	text-align: center;
+	font-family: monospace;
+}
+
+table {
+	margin: 4rem auto;
+	border-collapse: collapse;
+}
+
+table.frozen {
+	pointer-events: none;
+}
+
+tr:not(:last-child) {
+	border-bottom: 1px solid black;
+}
+
+td {
+	width: 6rem;
+	height: 6rem;
+	text-align: center;
+}
+
+td:not(:last-child) {
+	border-right: 1px solid black;
+}
+
+td.winner {
+	background-color: lightgreen;
+	border: 3px solid seagreen;
+}
+
+.win-title {
+	color: seagreen;
+}
+
+.draw-title {
+	color: darkorange;
+}
+
+.cell {
+	width: 100%;
+	height: 100%;
+	cursor: pointer;
+}
+
+.cell-text {
+	font-size: 3rem;
+	font-family: monospace;
+}
+
+.border-below {
+	border-bottom: 1px solid black;
+}
