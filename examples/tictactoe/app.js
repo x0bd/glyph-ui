@@ -1,4 +1,9 @@
-import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1.2.0";
+// import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1.2.0";
+import {
+	createApp,
+	h,
+	hFragment,
+} from "./../../packages/runtime/dist/glyphui.js";
 import { makeInitialState, markReducer } from "./game.js";
 
 const View = (state, emit) => {
@@ -51,7 +56,7 @@ const Cell = ({ cell, i, j }, emit) => {
 				[]
 		  );
 
-	return h("td", {}, "mark");
+	return h("td", {}, [mark]);
 };
 
 createApp({
