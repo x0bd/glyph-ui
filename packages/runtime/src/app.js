@@ -1,6 +1,7 @@
 import { destroyDOM } from "./destroy-dom";
 import { Dispatcher } from "./dispatcher";
 import { mountDOM } from "./mount-dom";
+import { patchDOM } from "./patch-dom";
 
 /**
  * Creates an application with the given top-level view, initial state and reducers.
@@ -40,12 +41,9 @@ export function createApp({ state, view, reducers = {} }) {
 	 * DOM instead of destroying and mounting the whole view.
 	 */
 	function renderApp() {
-		if (vdom) {
-			destroyDOM(vdom);
-		}
+		const newVdom = view(state, emit);
 
-		vdom = view(state, emit);
-		mountDOM(vdom, parentEl);
+		vdom = patchDOM(vdom, newVdom, parentEl);
 	}
 
 	return {
@@ -57,7 +55,8 @@ export function createApp({ state, view, reducers = {} }) {
 		 */
 		mount(_parentEl) {
 			parentEl = _parentEl;
-			renderApp();
+			vdom = view(state, emit);
+			mountDOM(vdom, parentEl);
 
 			return this;
 		},
