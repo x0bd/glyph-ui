@@ -48,6 +48,30 @@ class ArrayWithOriginalIndices {
 		return indexInNewArray === -1;
 	}
 
+	isNoop(index, newArray) {
+		if (index >= this.length) {
+			return false;
+		}
+
+		const item = this.#array[index];
+		const newItem = newArray[index];
+
+		return this.#equalsFn(item, newItem);
+	}
+
+	originalIndexAt(index) {
+		return this.#originalIndices[index];
+	}
+
+	noopItem(index) {
+		return {
+			op: ARRAY_DIFF_OP.NOOP,
+			originalIndex: this.originalIndexAt(index),
+			index,
+			item: this.#array[index],
+		};
+	}
+
 	removeItem(index) {
 		const operation = {
 			op: ARRAY_DIFF_OP.REMOVE,
@@ -78,6 +102,10 @@ export function arrayDiffSequence(
 			continue;
 		}
 		// TODO: noop case
+		if (array.isNoop(index, newArray)) {
+			sequence.push(array.noopItem(index));
+			continue;
+		}
 		// TODO: addition case
 		// TODO: remove extra items
 	}
