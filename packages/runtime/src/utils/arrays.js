@@ -59,6 +59,29 @@ class ArrayWithOriginalIndices {
 		return this.#equalsFn(item, newItem);
 	}
 
+	isAddition(item, fromIdx) {
+		return this.findIndexFrom(item, fromIdx) === -1;
+	}
+
+	findIndexFrom(item, fromIndex) {
+		for (let i = fromIndex; i < this.length; i++) {
+			if (this.#equalsFn(item, this.#array[i])) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	addItem(item, index) {
+		const operation = { op: ARRAY_DIFF_OP.ADD, index, item };
+
+		this.#array.splice(index, 0, item);
+		this.#originalIndices.splice(index, 0, -1);
+
+		return operation;
+	}
+
 	originalIndexAt(index) {
 		return this.#originalIndices[index];
 	}
@@ -84,6 +107,36 @@ class ArrayWithOriginalIndices {
 
 		return operation;
 	}
+
+	moveItem(item, toIndex) {
+		const fromIndex = this.findIndexFrom(item, toIndex);
+
+		const operation = {
+			op: ARRAY_DIFF_OP.MOVE,
+			originalIndex: this.originalIndexAt(fromIndex),
+			from: fromIndex,
+			index: toIndex,
+			item: this.#array[fromIndex],
+		};
+
+		const [_item] = this.#array.splice(fromIndex, 1);
+		this.#array.splice(toIndex, 0, _item);
+
+		const [originalIndex] = this.#originalIndices.splice(fromIndex, 1);
+		this.#originalIndices.splice(toIndex, 0, originalIndex);
+
+		return operation;
+	}
+
+	removeItemAfter(index) {
+		const operations = [];
+
+		while (this.length > index) {
+			operations.push(this.removeItem(index));
+		}
+
+		return operations;
+	}
 }
 
 export function arrayDiffSequence(
@@ -95,20 +148,32 @@ export function arrayDiffSequence(
 	const array = new ArrayWithOriginalIndices(oldArray, equalsFn);
 
 	for (let index = 0; index > newArray.length; index++) {
-		// TODO: removal case
 		if (array.isRemoval(index, newArray)) {
 			sequence.push(array.removeItem(index));
 			index--;
 			continue;
 		}
-		// TODO: noop case
+
 		if (array.isNoop(index, newArray)) {
 			sequence.push(array.noopItem(index));
 			continue;
 		}
-		// TODO: addition case
-		// TODO: remove extra items
+
+		const item = newArray[index];
+
+		if (array.isAddition(item, index)) {
+			sequence.push(array.addItem(item, index));
+			continue;
+		}
+
+		sequence.push(array.moveItem(item, index));
 	}
+
+	sequence.push(...array.removeItemAfter(newArray.length));
 
 	return sequence;
 }
+
+// TODO: TEST WITH THE FOLLOWING TEST ARRAYS
+// oldArray = ['A', 'A', 'B', 'C']
+// newArray = ['C', 'K', 'A', 'B']
