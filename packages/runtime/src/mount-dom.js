@@ -1,3 +1,5 @@
+// TODOCS
+
 import { setAttributes } from "./attributes";
 import { addEventListeners } from "./events";
 import { DOM_TYPES } from "./h";
@@ -9,20 +11,20 @@ import { DOM_TYPES } from "./h";
  * @param {object} oldVDom the virtual DOM node to mount
  * @param {HTMLElement} parentEl the host element to mount the virtual DOM node to
  */
-export function mountDOM(vdom, parentEl) {
+export function mountDOM(vdom, parentEl, index) {
 	switch (vdom.type) {
 		case DOM_TYPES.TEXT: {
-			createTextNode(vdom, parentEl);
+			createTextNode(vdom, parentEl, index);
 			break;
 		}
 
 		case DOM_TYPES.ELEMENT: {
-			createElementNode(vdom, parentEl);
+			createElementNode(vdom, parentEl, index);
 			break;
 		}
 
 		case DOM_TYPES.FRAGMENT: {
-			createFragmentNodes(vdom, parentEl);
+			createFragmentNodes(vdom, parentEl, index);
 			break;
 		}
 
@@ -45,13 +47,13 @@ export function mountDOM(vdom, parentEl) {
  * @param {object} vdom the virtual DOM node of type "text"
  * @param {Element} parentEl the host element to mount the virtual DOM node to
  */
-function createTextNode(vdom, parentEl) {
+function createTextNode(vdom, parentEl, index) {
 	const { value } = vdom;
 
 	const textNode = document.createTextNode(value);
 	vdom.el = textNode;
 
-	parentEl.append(textNode);
+	insert(textNode, parentEl, index);
 }
 
 /**
@@ -64,7 +66,7 @@ function createTextNode(vdom, parentEl) {
  * @param {object} vdom the virtual DOM node of type "element"
  * @param {Element} parentEl the host element to mount the virtual DOM node to
  */
-function createElementNode(vdom, parentEl) {
+function createElementNode(vdom, parentEl, index) {
 	const { tag, props, children } = vdom;
 
 	const element = document.createElement(tag);
@@ -72,7 +74,7 @@ function createElementNode(vdom, parentEl) {
 	vdom.el = element;
 
 	children.forEach((child) => mountDOM(child, element));
-	parentEl.append(element);
+	insert(element, parentEl, index);
 }
 
 function addProps(el, props, vdom) {
@@ -95,9 +97,34 @@ function addProps(el, props, vdom) {
  * @param {object} vdom the virtual DOM node of type "fragment"
  * @param {Element} parentEl the host element to mount the virtual DOM node to
  */
-function createFragmentNodes(vdom, parentEl) {
+function createFragmentNodes(vdom, parentEl, index) {
 	const { children } = vdom;
 	vdom.el = parentEl;
 
-	children.forEach((child) => mountDOM(child, parentEl));
+	children.forEach((child, i) =>
+		mountDOM(child, parentEl, index ? index + i : null)
+	);
+}
+
+function insert(el, parentEl, index) {
+	// If index is null or undefined, simply append.
+	// Note the usage of == instead of ===.
+	if (index == null) {
+		parentEl.append(el);
+		return;
+	}
+
+	if (index < 0) {
+		throw new Error(
+			`Index must be a positive number integer, got ${index}`
+		);
+	}
+
+	const children = parentEl.childNodes;
+
+	if (index >= children.length) {
+		parentEl.append(el);
+	} else {
+		parentEl.insertBefore(el, children[index]);
+	}
 }
