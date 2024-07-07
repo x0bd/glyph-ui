@@ -7,11 +7,7 @@ const state = {
 		original: null,
 		edited: null,
 	},
-	todos: [
-		"watch rammstein documentary",
-		"feed the cat",
-		"debug weird dom Bug",
-	],
+	todos: ["watch OOP vs FP video", "feed the cat", "publish framework"],
 };
 
 const reducers = {
