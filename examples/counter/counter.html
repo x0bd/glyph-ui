@@ -6,30 +6,78 @@
 		<style>
 			body {
 				text-align: center;
-				margin: 2rem;
+				display: flex;
+				place-items: center;
+				flex-direction: column;
+				justify-content: center;
+				height: 100vh;
 				font-size: 2rem;
+				font-family: monospace;
+				background: #e0def4;
+				color: #26233a;
+				margin: 0;
+				padding: 0;
 			}
 
 			button {
-				font-size: 1rem;
-				width: 1.5rem;
+				font-size: 2rem;
+				border-radius: 5px;
+				padding: 7px 15px;
 			}
 
 			span {
 				margin: 0 1rem;
+				color: #56949f;
+			}
+
+			.btn-neg {
+				background: #eb6f92;
+			}
+
+			.btn-pos {
+				background: #56949f;
+			}
+
+			.btn-neg:hover {
+				background: #bf6d83;
+			}
+
+			.btn-pos:hover {
+				background: #62a8b4;
 			}
 
 			span.negative {
-				color: #e91e61;
+				color: #b4637a;
+			}
+
+			h1 {
+				font-size: 32px;
+			}
+
+			a {
+				font-size: 18px;
+				font-weight: 500;
+				margin-top: 10px;
+				color: #6e6a86;
+			}
+
+			a:hover {
+				color: #26233a;
 			}
 		</style>
 		<script type="module">
+			// import {
+			// 	createApp,
+			// 	hString,
+			// 	hFragment,
+			// 	h,
+			// } from "https://unpkg.com/glyphui@1.2.0";
 			import {
 				createApp,
-				hString,
-				hFragment,
 				h,
-			} from "https://unpkg.com/glyphui@1.2.0";
+				hFragment,
+				hString,
+			} from "./../../packages/runtime/dist/glyphui.js";
 
 			const state = { count: 0 };
 			const reducers = {
@@ -39,7 +87,11 @@
 
 			function View(state, emit) {
 				return hFragment([
-					h("button", { on: { click: () => emit("sub") } }, ["-"]),
+					h(
+						"button",
+						{ on: { click: () => emit("sub") }, class: "btn-neg" },
+						["-"]
+					),
 					h(
 						"span",
 						{
@@ -47,18 +99,26 @@
 								state.count > 0 ? "positive" : "negative"
 							}`,
 						},
-						[hString(state.count)]
+
+						[hString("count is: "), hString(state.count)]
 					),
-					h("button", { on: { click: () => emit("add") } }, ["+"]),
+					h(
+						"button",
+						{ on: { click: () => emit("add") }, class: "btn-pos" },
+						["+"]
+					),
 				]);
 			}
 
-			createApp({ state, view: View, reducers }).mount(document.body);
+			createApp({ state, view: View, reducers }).mount(
+				document.body.children[1]
+			);
 		</script>
-
 		<title>Counter</title>
 	</head>
 	<body>
 		<h1>Counter</h1>
+		<main class="main"></main>
+		<a href="https://github.com/x0bd/glyphui" target="_blank">github</a>
 	</body>
 </html>
