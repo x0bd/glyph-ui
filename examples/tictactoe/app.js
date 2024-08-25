@@ -18,7 +18,7 @@ const Header = (state) => {
 	}
 
 	if (state.draw) {
-		return h[("h3", { class: "draw-title" }, [`It's a draw!`])];
+		return h("h3", { class: "draw-title" }, [`It's a draw!`]);
 	}
 
 	return h("h3", {}, [`It's ${state.player}'s turn!`]);

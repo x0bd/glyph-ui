@@ -1,6 +1,10 @@
+/*Rosé Pine Dawn Color Scheme  */
+
 body {
 	text-align: center;
 	font-family: monospace;
+	background: #faf4ed;
+	color: #575259;
 }
 
 table {
@@ -13,7 +17,7 @@ table.frozen {
 }
 
 tr:not(:last-child) {
-	border-bottom: 1px solid black;
+	border-bottom: 5px solid #575259;
 }
 
 td {
@@ -23,20 +27,20 @@ td {
 }
 
 td:not(:last-child) {
-	border-right: 1px solid black;
+	border-right: 5px solid #575259;
 }
 
 td.winner {
 	background-color: lightgreen;
-	border: 3px solid seagreen;
+	border: 3px solid #56949f;
 }
 
 .win-title {
-	color: seagreen;
+	color: #56949f;
 }
 
 .draw-title {
-	color: darkorange;
+	color: #ea9d34;
 }
 
 .cell {
@@ -48,8 +52,9 @@ td.winner {
 .cell-text {
 	font-size: 3rem;
 	font-family: monospace;
+	color: #d7827e;
 }
 
 .border-below {
-	border-bottom: 1px solid black;
+	border-bottom: 1px solid #26233a;
 }
