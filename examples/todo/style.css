@@ -1,0 +1,38 @@
+body {
+	width: 100vw;
+	margin: 2em auto;
+	padding: 2rem;
+	font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+		"Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+	display: flex;
+	place-items: center;
+	height: 100vh;
+	flex-direction: column;
+	font-size: 24px;
+	gap: 10px;
+}
+
+.main {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.todo-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+}
+
+.todo-list .todo-item {
+	display: flex;
+	justify-content: start;
+	align-items: center;
+	gap: 5px;
+	padding: 0;
+}
+
+.todo-list .todo-item button {
+	background: red;
+}

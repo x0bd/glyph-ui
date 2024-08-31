@@ -1,4 +1,10 @@
-import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1.2.0";
+// import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1.2.0";
+import {
+	createApp,
+	h,
+	hFragment,
+	hString,
+} from "./../../packages/runtime/dist/glyphui.js";
 
 const state = {
 	currentTodo: "",
@@ -63,8 +69,8 @@ function App(state, emit) {
 }
 
 function CreateTodo({ currentTodo }, emit) {
-	return h("div", {}, [
-		h("label", { for: "todo-input" }, ["New TODO"]),
+	return h("div", { class: "main" }, [
+		h("label", { for: "todo-input" }, ["new todo"]),
 		h("input", {
 			type: "text",
 			id: "todo-input",
@@ -92,8 +98,8 @@ function CreateTodo({ currentTodo }, emit) {
 
 function TodoList({ todos, edit }, emit) {
 	return h(
-		"ul",
-		{},
+		"div",
+		{ class: "todo-list" },
 		todos.map((todo, i) => TodoItem({ todo, i, edit }, emit))
 	);
 }
@@ -102,7 +108,7 @@ function TodoItem({ todo, i, edit }, emit) {
 	const isEditing = edit.idx === i;
 
 	return isEditing
-		? h("li", {}, [
+		? h("div", { class: "todo-item" }, [
 				h("input", {
 					value: edit.edited,
 					on: {
@@ -118,7 +124,8 @@ function TodoItem({ todo, i, edit }, emit) {
 					["Cancel"]
 				),
 		  ])
-		: h("li", {}, [
+		: h("div", { class: "todo-item" }, [
+				hString("•"),
 				h(
 					"span",
 					{ on: { dblclick: () => emit("start-editing-todo", i) } },
