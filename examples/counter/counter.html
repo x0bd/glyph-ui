@@ -3,75 +3,80 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<!-- Import Geist Mono font -->
+		<link
+			rel="stylesheet"
+			href="https://api.fontsource.org/css/geist-mono"
+		/>
 		<style>
+			* {
+				box-sizing: border-box;
+			}
 			body {
-				text-align: center;
 				display: flex;
-				place-items: center;
 				flex-direction: column;
 				justify-content: center;
+				align-items: center;
 				height: 100vh;
-				font-size: 2rem;
-				font-family: monospace;
-				background: #e0def4;
-				color: #26233a;
 				margin: 0;
 				padding: 0;
+				background: linear-gradient(135deg, #fff, #f8f8f8);
+				color: #000;
+				font-family: "Geist Mono", monospace;
+				text-align: center;
 			}
-
+			h1 {
+				font-size: 2.5rem;
+				margin: 0.5rem;
+				text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+			}
+			.framework-name {
+				font-size: 1.5rem;
+				font-weight: 300;
+				margin-bottom: 1rem;
+				color: #555;
+			}
+			main {
+				margin: 2rem 0;
+				padding: 2rem;
+				border: 2px solid #000;
+				border-radius: 8px;
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			}
 			button {
 				font-size: 2rem;
-				border-radius: 5px;
-				padding: 7px 15px;
+				padding: 10px 20px;
+				margin: 0 10px;
+				border: 2px solid #000;
+				background: #fff;
+				color: #000;
+				cursor: pointer;
+				transition: background-color 0.2s ease, transform 0.2s ease,
+					box-shadow 0.2s ease;
 			}
-
+			button:hover {
+				background: #000;
+				color: #fff;
+				transform: translateY(-2px);
+				box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+			}
 			span {
-				margin: 0 1rem;
-				color: #56949f;
+				font-size: 2rem;
+				margin: 0 20px;
 			}
-
-			.btn-neg {
-				background: #eb6f92;
-			}
-
-			.btn-pos {
-				background: #56949f;
-			}
-
-			.btn-neg:hover {
-				background: #bf6d83;
-			}
-
-			.btn-pos:hover {
-				background: #62a8b4;
-			}
-
-			span.negative {
-				color: #b4637a;
-			}
-
-			h1 {
-				font-size: 32px;
-			}
-
 			a {
-				font-size: 18px;
-				font-weight: 500;
-				margin-top: 10px;
-				color: #6e6a86;
+				font-size: 1rem;
+				margin-top: 1rem;
+				text-decoration: none;
+				color: #000;
+				border-bottom: 1px solid #000;
+				transition: opacity 0.2s ease;
 			}
-
 			a:hover {
-				color: #26233a;
+				opacity: 0.7;
 			}
 		</style>
 		<script type="module">
-			// import {
-			// 	createApp,
-			// 	hString,
-			// 	hFragment,
-			// 	h,
-			// } from "https://unpkg.com/glyphui@1.2.0";
 			import {
 				createApp,
 				h,
@@ -80,6 +85,7 @@
 			} from "./../../packages/runtime/dist/glyphui.js";
 
 			const state = { count: 0 };
+
 			const reducers = {
 				add: (state) => ({ count: state.count + 1 }),
 				sub: (state) => ({ count: state.count - 1 }),
@@ -87,37 +93,24 @@
 
 			function View(state, emit) {
 				return hFragment([
-					h(
-						"button",
-						{ on: { click: () => emit("sub") }, class: "btn-neg" },
-						["-"]
-					),
-					h(
-						"span",
-						{
-							class: `${
-								state.count > 0 ? "positive" : "negative"
-							}`,
-						},
-
-						[hString("count is: "), hString(state.count)]
-					),
-					h(
-						"button",
-						{ on: { click: () => emit("add") }, class: "btn-pos" },
-						["+"]
-					),
+					h("button", { on: { click: () => emit("sub") } }, ["-"]),
+					h("span", {}, [
+						hString("count is: "),
+						hString(state.count),
+					]),
+					h("button", { on: { click: () => emit("add") } }, ["+"]),
 				]);
 			}
 
 			createApp({ state, view: View, reducers }).mount(
-				document.body.children[1]
+				document.querySelector("main")
 			);
 		</script>
-		<title>Counter</title>
+		<title>Counter App</title>
 	</head>
 	<body>
-		<h1>Counter</h1>
+		<h1>Counter App</h1>
+		<div class="framework-name">Built with Glyph</div>
 		<main class="main"></main>
 		<a href="https://github.com/x0bd/glyphui" target="_blank">github</a>
 	</body>
