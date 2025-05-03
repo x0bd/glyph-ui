@@ -312,21 +312,33 @@ class MemoryGame extends Component {
   render(props, state) {
     const { deck, moves, matches, startTime, showDifficultyDialog, isGameComplete } = state;
     
-    // Calculate board dimensions based on difficulty
+    // Calculate board dimensions based on difficulty and screen width
     const { difficulty } = state;
+    const windowWidth = window.innerWidth;
     
     // Set columns based on difficulty and screen width
     let columns;
     if (difficulty === 'easy') {
-      columns = 3; // 3x4 grid
+      // For easy, use 3 columns on small screens, 4 on larger screens
+      columns = windowWidth < 640 ? 3 : 4;
     } else if (difficulty === 'medium') {
-      columns = 4; // 4x4 grid
+      // For medium, use 4 columns regardless of screen size
+      columns = 4;
     } else if (difficulty === 'hard') {
-      // For hard difficulty, check screen width to decide columns
-      columns = window.innerWidth >= 640 ? 6 : 4; // 6x4 grid on wider screens, 4x6 on narrow
+      // For hard, use 4 on small screens, 6 on medium, 8 on very large screens
+      if (windowWidth < 640) {
+        columns = 4;
+      } else if (windowWidth < 900) {
+        columns = 6;
+      } else {
+        columns = 8;
+      }
     } else {
       columns = 4; // Default
     }
+    
+    // Set additional className for the game board based on difficulty
+    const boardClassName = `game-board game-board-${difficulty}`;
     
     const boardStyle = {
       gridTemplateColumns: `repeat(${columns}, 1fr)`
@@ -348,7 +360,7 @@ class MemoryGame extends Component {
       
       // Game board with cards
       h('div', { 
-        class: 'game-board',
+        class: boardClassName,
         style: boardStyle
       }, 
         deck.map(card => 
