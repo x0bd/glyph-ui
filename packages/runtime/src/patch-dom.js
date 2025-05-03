@@ -240,89 +240,58 @@ function patchUnkeyedChildren(oldChildren, newChildren, parentEl) {
 }
 
 /**
- * Patches children using key-based reconciliation for more efficient updates
+ * Patches children using key-based reconciliation for more efficient updates.
+ * This version uses a common algorithm for better stability.
  */
 function patchKeyedChildren(oldChildren, newChildren, parentEl) {
-  // Create a map of old keyed children
-  const oldKeyedChildren = {};
-  const oldUnkeyedChildren = [];
-  
-  // Separate old keyed and unkeyed children for quick lookup
+  const oldKeyMap = new Map();
   oldChildren.forEach((child, i) => {
     const key = getNodeKey(child);
     if (key !== undefined) {
-      oldKeyedChildren[key] = { vdom: child, index: i };
-    } else {
-      oldUnkeyedChildren.push({ vdom: child, index: i });
+      oldKeyMap.set(key, { vdom: child, index: i });
     }
   });
-  
-  // New nodes to mount and their final position
-  const nodesToMount = [];
-  
-  // Keep track of nodes that have been patched
-  const patchedNodes = new Set();
-  
-  // Track the DOM operations for each new child
-  newChildren.forEach((newChild, newIndex) => {
-    const key = getNodeKey(newChild);
-    let oldChildEntry;
-    
-    if (key !== undefined) {
-      // We have a keyed element
-      oldChildEntry = oldKeyedChildren[key];
-      
-      if (oldChildEntry) {
-        // Found a matching key, patch the node
-        patchDOM(oldChildEntry.vdom, newChild, parentEl, newIndex);
-        patchedNodes.add(key);
-        
-        // Move if necessary
-        if (newIndex !== oldChildEntry.index) {
-          // Need to move this node
-          const el = newChild.el;
-          const referenceNode = parentEl.childNodes[newIndex + 1] || null;
-          parentEl.insertBefore(el, referenceNode);
-        }
+
+  let lastPatchedIndex = 0;
+  const patchedKeys = new Set();
+
+  // Iterate through new children to patch, move, or create nodes
+  for (let i = 0; i < newChildren.length; i++) {
+    const newChild = newChildren[i];
+    const newKey = getNodeKey(newChild);
+    const oldEntry = newKey !== undefined ? oldKeyMap.get(newKey) : undefined;
+
+    const referenceNode = parentEl.childNodes[i]; // Node *currently* at this position
+
+    if (oldEntry) {
+      // Key found: Patch the existing node
+      const oldChild = oldEntry.vdom;
+      patchDOM(oldChild, newChild, parentEl, i);
+      patchedKeys.add(newKey);
+
+      // Check if the node needs to be moved
+      if (oldEntry.index < lastPatchedIndex) {
+        // Move node forward
+        parentEl.insertBefore(newChild.el, referenceNode);
       } else {
-        // No matching key found, need to mount a new node
-        nodesToMount.push({ vdom: newChild, index: newIndex });
+        // Node is in correct relative order or doesn't need moving
+        lastPatchedIndex = oldEntry.index;
       }
     } else {
-      // Unkeyed element, try to reuse an unkeyed node
-      if (oldUnkeyedChildren.length > 0) {
-        oldChildEntry = oldUnkeyedChildren.shift();
-        patchDOM(oldChildEntry.vdom, newChild, parentEl, newIndex);
-        
-        // Move if necessary
-        if (newIndex !== oldChildEntry.index) {
-          const el = newChild.el;
-          const referenceNode = parentEl.childNodes[newIndex + 1] || null;
-          parentEl.insertBefore(el, referenceNode);
-        }
-      } else {
-        // No more unkeyed nodes to reuse, mount a new one
-        nodesToMount.push({ vdom: newChild, index: newIndex });
-      }
+      // Key not found: Mount a new node
+      mountDOM(newChild, parentEl, i);
+    }
+  }
+
+  // Remove any old children whose keys were not found in the new children
+  oldKeyMap.forEach((oldEntry, key) => {
+    if (!patchedKeys.has(key)) {
+      destroyDOM(oldEntry.vdom);
     }
   });
-  
-  // Mount new nodes
-  nodesToMount.forEach(({ vdom, index }) => {
-    mountDOM(vdom, parentEl, index);
-  });
-  
-  // Remove any old keyed nodes that weren't reused
-  Object.keys(oldKeyedChildren).forEach(key => {
-    if (!patchedNodes.has(key)) {
-      destroyDOM(oldKeyedChildren[key].vdom);
-    }
-  });
-  
-  // Remove any remaining old unkeyed nodes
-  oldUnkeyedChildren.forEach(({ vdom }) => {
-    destroyDOM(vdom);
-  });
+
+  // Note: This implementation assumes all children are keyed if any are.
+  // Handling mixed keyed/unkeyed children would require more complex logic.
 }
 
 /**

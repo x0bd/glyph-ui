@@ -601,58 +601,37 @@ function patchUnkeyedChildren(oldChildren, newChildren, parentEl) {
   }
 }
 function patchKeyedChildren(oldChildren, newChildren, parentEl) {
-  const oldKeyedChildren = {};
-  const oldUnkeyedChildren = [];
+  const oldKeyMap = new Map();
   oldChildren.forEach((child, i) => {
     const key = getNodeKey(child);
     if (key !== undefined) {
-      oldKeyedChildren[key] = { vdom: child, index: i };
-    } else {
-      oldUnkeyedChildren.push({ vdom: child, index: i });
+      oldKeyMap.set(key, { vdom: child, index: i });
     }
   });
-  const nodesToMount = [];
-  const patchedNodes = new Set();
-  newChildren.forEach((newChild, newIndex) => {
-    const key = getNodeKey(newChild);
-    let oldChildEntry;
-    if (key !== undefined) {
-      oldChildEntry = oldKeyedChildren[key];
-      if (oldChildEntry) {
-        patchDOM(oldChildEntry.vdom, newChild, parentEl, newIndex);
-        patchedNodes.add(key);
-        if (newIndex !== oldChildEntry.index) {
-          const el = newChild.el;
-          const referenceNode = parentEl.childNodes[newIndex + 1] || null;
-          parentEl.insertBefore(el, referenceNode);
-        }
+  let lastPatchedIndex = 0;
+  const patchedKeys = new Set();
+  for (let i = 0; i < newChildren.length; i++) {
+    const newChild = newChildren[i];
+    const newKey = getNodeKey(newChild);
+    const oldEntry = newKey !== undefined ? oldKeyMap.get(newKey) : undefined;
+    const referenceNode = parentEl.childNodes[i];
+    if (oldEntry) {
+      const oldChild = oldEntry.vdom;
+      patchDOM(oldChild, newChild, parentEl, i);
+      patchedKeys.add(newKey);
+      if (oldEntry.index < lastPatchedIndex) {
+        parentEl.insertBefore(newChild.el, referenceNode);
       } else {
-        nodesToMount.push({ vdom: newChild, index: newIndex });
+        lastPatchedIndex = oldEntry.index;
       }
     } else {
-      if (oldUnkeyedChildren.length > 0) {
-        oldChildEntry = oldUnkeyedChildren.shift();
-        patchDOM(oldChildEntry.vdom, newChild, parentEl, newIndex);
-        if (newIndex !== oldChildEntry.index) {
-          const el = newChild.el;
-          const referenceNode = parentEl.childNodes[newIndex + 1] || null;
-          parentEl.insertBefore(el, referenceNode);
-        }
-      } else {
-        nodesToMount.push({ vdom: newChild, index: newIndex });
-      }
+      mountDOM(newChild, parentEl, i);
     }
-  });
-  nodesToMount.forEach(({ vdom, index }) => {
-    mountDOM(vdom, parentEl, index);
-  });
-  Object.keys(oldKeyedChildren).forEach(key => {
-    if (!patchedNodes.has(key)) {
-      destroyDOM(oldKeyedChildren[key].vdom);
+  }
+  oldKeyMap.forEach((oldEntry, key) => {
+    if (!patchedKeys.has(key)) {
+      destroyDOM(oldEntry.vdom);
     }
-  });
-  oldUnkeyedChildren.forEach(({ vdom }) => {
-    destroyDOM(vdom);
   });
 }
 function replaceNode(oldVdom, newVdom, parentEl, index) {
@@ -881,18 +860,65 @@ function createStore(createState) {
   };
 }
 function connect(store, selector = state => state) {
-  return (Component) => {
-    return class ConnectedComponent extends Component {
+  return (ComponentClass) => {
+    return class ConnectedComponent extends ComponentClass {
       constructor(props) {
-        const selectedState = selector(store.getState());
-        super({ ...props, store: selectedState });
-        this.selectedState = selectedState;
-        this.unsubscribe = store.subscribe(storeState => {
-          const nextSelectedState = selector(storeState);
-          if (!Object.is(nextSelectedState, this.selectedState)) {
-            this.selectedState = nextSelectedState;
-            this.updateProps({ ...this.props, store: nextSelectedState });
+        const storeState = store.getState();
+        const selectedState = selector(storeState);
+        const storeProp = selectedState;
+        super(Object.assign({}, props, { store: storeProp }));
+        this.lastStoreState = storeState;
+        this.lastSelectedState = selectedState;
+        this.selector = selector;
+        this.unsubscribe = store.subscribe(this.handleStoreChange.bind(this));
+      }
+      handleStoreChange(newStoreState) {
+        if (!this.isMounted) return;
+        const newSelectedState = this.selector(newStoreState);
+        console.log("Connect: handleStoreChange", {
+          component: this.constructor.name,
+          areEqual: this.shallowEqual(newSelectedState, this.lastSelectedState),
+          newSelectedState,
+          lastSelectedState: this.lastSelectedState
+        });
+        if (this.shallowEqual(newSelectedState, this.lastSelectedState)) {
+          return;
+        }
+        this.lastStoreState = newStoreState;
+        this.lastSelectedState = newSelectedState;
+        this.updateProps({
+          ...this.props,
+          store: newSelectedState
+        });
+      }
+      shallowEqual(obj1, obj2) {
+        if (obj1 === obj2) return true;
+        if (!obj1 || !obj2) return false;
+        const keys1 = Object.keys(obj1);
+        const keys2 = Object.keys(obj2);
+        if (keys1.length !== keys2.length) return false;
+        return keys1.every(key => {
+          if (typeof obj1[key] === 'function' && typeof obj2[key] === 'function') {
+            return obj1[key].name === obj2[key].name;
           }
+          if (Array.isArray(obj1[key]) && Array.isArray(obj2[key])) {
+            if (obj1[key].length !== obj2[key].length) {
+              console.log(`Array length changed for ${key}: ${obj1[key].length} → ${obj2[key].length}`);
+              return false;
+            }
+            for (let i = 0; i < obj1[key].length; i++) {
+              if (obj1[key][i] !== obj2[key][i]) {
+                console.log(`Array item ${i} changed for ${key}`);
+                return false;
+              }
+            }
+            return true;
+          }
+          const equal = obj1[key] === obj2[key];
+          if (!equal) {
+            console.log(`Property ${key} changed:`, obj1[key], obj2[key]);
+          }
+          return equal;
         });
       }
       beforeUnmount() {
