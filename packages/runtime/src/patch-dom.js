@@ -36,13 +36,15 @@ export function patchDOM(oldVdom, newVdom, parentEl, index) {
   
   // If the node types are different, replace the old node
   if (oldVdom.type !== newVdom.type) {
-    // Special handling for components
-    if (oldVdom.type === COMPONENT_TYPE && newVdom.type === COMPONENT_TYPE) {
-      if (oldVdom.ComponentClass !== newVdom.ComponentClass) {
-        replaceNode(oldVdom, newVdom, parentEl, index);
-        return newVdom;
-      }
-    } else {
+    replaceNode(oldVdom, newVdom, parentEl, index);
+    return newVdom;
+  }
+  
+  // Special handling for components: If ComponentClass differs, replace the node
+  if (oldVdom.type === COMPONENT_TYPE && newVdom.type === COMPONENT_TYPE) {
+    // Check if the underlying ComponentClass is different
+    // This handles switching between different components (e.g., HomePage vs LazyComponent)
+    if (oldVdom.ComponentClass !== newVdom.ComponentClass) {
       replaceNode(oldVdom, newVdom, parentEl, index);
       return newVdom;
     }
@@ -61,9 +63,11 @@ export function patchDOM(oldVdom, newVdom, parentEl, index) {
   }
   
   // For elements and components with the same type, check if props are unchanged
+  // Note: This prop check might be redundant for components if they are always replaced 
+  // when ComponentClass differs, but keep it for potential edge cases or future refactoring.
   if ((newVdom.type === DOM_TYPES.ELEMENT || newVdom.type === COMPONENT_TYPE) &&
        oldVdom.props && newVdom.props && isShallowEqual(oldVdom.props, newVdom.props)) {
-    // Props are the same, just transfer all children
+    // Props are the same, just transfer children if any
     if (Array.isArray(oldVdom.children) && Array.isArray(newVdom.children) && 
         oldVdom.children.length === 0 && newVdom.children.length === 0) {
       // No children to update, just reuse the old element
@@ -94,6 +98,7 @@ export function patchDOM(oldVdom, newVdom, parentEl, index) {
     }
     
     case COMPONENT_TYPE: {
+      // ComponentClass is the same (checked above), so patch the existing instance
       return patchComponent(oldVdom, newVdom);
     }
     

@@ -484,12 +484,11 @@ function patchDOM(oldVdom, newVdom, parentEl, index) {
     return newVdom;
   }
   if (oldVdom.type !== newVdom.type) {
-    if (oldVdom.type === COMPONENT_TYPE && newVdom.type === COMPONENT_TYPE) {
-      if (oldVdom.ComponentClass !== newVdom.ComponentClass) {
-        replaceNode(oldVdom, newVdom, parentEl, index);
-        return newVdom;
-      }
-    } else {
+    replaceNode(oldVdom, newVdom, parentEl, index);
+    return newVdom;
+  }
+  if (oldVdom.type === COMPONENT_TYPE && newVdom.type === COMPONENT_TYPE) {
+    if (oldVdom.ComponentClass !== newVdom.ComponentClass) {
       replaceNode(oldVdom, newVdom, parentEl, index);
       return newVdom;
     }

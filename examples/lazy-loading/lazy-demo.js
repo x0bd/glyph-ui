@@ -8,6 +8,15 @@ import {
   createDelayedComponent
 } from "../../packages/runtime/dist/glyphui.js";
 
+// Add debugging to see if the framework is loaded correctly
+console.log("GlyphUI components loaded:", {
+  Component,
+  createComponent,
+  h,
+  lazy,
+  createDelayedComponent
+});
+
 // =======================================================
 // Regular components (would normally be in separate files)
 // =======================================================
@@ -42,9 +51,11 @@ class DashboardPage extends Component {
         ]
       }
     });
+    console.log("DashboardPage constructed");
   }
   
   render(props, state) {
+    console.log("DashboardPage rendering with state:", state);
     return h('div', { class: 'card' }, [
       h('h2', {}, ['Dashboard']),
       h('p', {}, ['This dashboard component was loaded lazily!']),
@@ -81,9 +92,11 @@ class ProfilePage extends Component {
         }
       }
     });
+    console.log("ProfilePage constructed");
   }
   
   render(props, state) {
+    console.log("ProfilePage rendering with state:", state);
     const { user } = state;
     
     return h('div', { class: 'card' }, [
@@ -128,6 +141,7 @@ class SettingsPage extends Component {
         autoSave: true
       }
     });
+    console.log("SettingsPage constructed");
   }
   
   toggleSetting(setting) {
@@ -135,6 +149,7 @@ class SettingsPage extends Component {
   }
   
   render(props, state) {
+    console.log("SettingsPage rendering with state:", state);
     return h('div', { class: 'card' }, [
       h('h2', {}, ['Settings']),
       h('p', {}, ['This settings component was loaded lazily when you clicked the Settings button.']),
@@ -187,6 +202,7 @@ class CustomLoadingComponent extends Component {
     super(props, {
       initialState: { dots: 1 }
     });
+    console.log("CustomLoadingComponent constructed");
     
     // Update the loading animation
     this.interval = setInterval(() => {
@@ -200,6 +216,7 @@ class CustomLoadingComponent extends Component {
   }
   
   render() {
+    console.log("CustomLoadingComponent rendering with dots:", this.state.dots);
     const { dots } = this.state;
     const dotsStr = '.'.repeat(dots);
     
@@ -255,6 +272,7 @@ class App extends Component {
   
   initializeLazyComponents() {
     const { useCustomLoading, loadingDelay } = this.state;
+    console.log("Initializing lazy components with settings:", { useCustomLoading, loadingDelay });
     
     // Create loading options
     const loadingOptions = useCustomLoading 
@@ -263,7 +281,10 @@ class App extends Component {
     
     // Create lazy components
     this.lazyComponents = {
-      home: () => createComponent(HomePage),
+      // Home page is not lazy loaded
+      home: HomePage,
+      
+      // Lazy components      
       dashboard: lazy(createDelayedComponent(DashboardPage, loadingDelay), loadingOptions),
       profile: lazy(createDelayedComponent(ProfilePage, loadingDelay), loadingOptions),
       settings: lazy(createDelayedComponent(SettingsPage, loadingDelay), loadingOptions)
@@ -271,6 +292,7 @@ class App extends Component {
   }
   
   updateSettings(useCustomLoading, loadingDelay) {
+    console.log("Updating settings:", { useCustomLoading, loadingDelay });
     this.setState({ 
       useCustomLoading, 
       loadingDelay,
@@ -283,6 +305,7 @@ class App extends Component {
   }
   
   navigateTo(page) {
+    console.log("Navigating to page:", page);
     this.setState({ currentPage: page });
     
     // Update active button
@@ -294,13 +317,17 @@ class App extends Component {
   
   render(props, state) {
     const { currentPage } = state;
+    console.log("App rendering for page:", currentPage);
     
-    // Get the component for the current page
-    const CurrentPage = this.lazyComponents[currentPage];
-    
-    return h('div', {}, [
-      createComponent(CurrentPage)
-    ]);
+    // Home page is regular component
+    if (currentPage === 'home') {
+      return createComponent(this.lazyComponents.home);
+    } else {
+      // For lazy components, we call the factory function from lazy()
+      const lazyFactory = this.lazyComponents[currentPage];
+      // Call the factory function to get the VDOM for the LazyComponent wrapper
+      return lazyFactory();
+    }
   }
 }
 
@@ -308,6 +335,7 @@ class App extends Component {
 // Mount the application and set up event listeners
 // =======================================================
 
+console.log("Creating and mounting App component");
 const app = new App();
 app.mount(document.getElementById('content'));
 
