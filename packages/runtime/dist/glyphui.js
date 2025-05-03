@@ -792,4 +792,66 @@ class Component {
   }
 }
 
-export { Component, DOM_TYPES, createApp, createComponent, createSlot, createSlotContent, h, hFragment, hString, isDeepEqual, isShallowEqual };
+function lazy(loader, options = {}) {
+  const defaultLoading = () => h('div', { style: { padding: '20px', textAlign: 'center' } }, ['Loading...']);
+  const defaultError = (error) => h('div', { style: { padding: '20px', color: 'red' } }, [
+    h('p', {}, ['Error loading component:']),
+    h('pre', { style: { background: '#f5f5f5', padding: '10px' } }, [error.message])
+  ]);
+  const loadingComponent = options.loading || defaultLoading;
+  const errorComponent = options.error || defaultError;
+  class LazyComponent extends Component {
+    constructor(props) {
+      super(props, {
+        initialState: {
+          status: 'loading',
+          Component: null,
+          error: null
+        }
+      });
+      this.loadComponent();
+    }
+    loadComponent() {
+      loader()
+        .then(module => {
+          const ComponentClass = module.default || module;
+          this.setState({
+            status: 'loaded',
+            Component: ComponentClass
+          });
+        })
+        .catch(error => {
+          console.error('Failed to load lazy component:', error);
+          this.setState({
+            status: 'error',
+            error
+          });
+        });
+    }
+    render(props, state) {
+      const { status, Component, error } = state;
+      switch (status) {
+        case 'loading':
+          return typeof loadingComponent === 'function'
+            ? createComponent(loadingComponent, {})
+            : loadingComponent;
+        case 'loaded':
+          return createComponent(Component, props);
+        case 'error':
+          return typeof errorComponent === 'function'
+            ? createComponent(errorComponent, { error })
+            : errorComponent;
+        default:
+          return null;
+      }
+    }
+  }
+  return (props = {}) => createComponent(LazyComponent, props);
+}
+function createDelayedComponent(Component, delayMs = 1000) {
+  return () => new Promise(resolve => {
+    setTimeout(() => resolve(Component), delayMs);
+  });
+}
+
+export { Component, DOM_TYPES, createApp, createComponent, createDelayedComponent, createSlot, createSlotContent, h, hFragment, hString, isDeepEqual, isShallowEqual, lazy };

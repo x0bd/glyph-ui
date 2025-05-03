@@ -10,3 +10,6 @@ export { createSlot, createSlotContent } from "./slots.js";
 
 // Export utility functions
 export { isShallowEqual, isDeepEqual } from "./utils/object-utils.js";
+
+// Export lazy loading functionality
+export { lazy, createDelayedComponent } from "./lazy.js";
