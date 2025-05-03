@@ -2,6 +2,7 @@ import { destroyDOM } from "./destroy-dom.js";
 import { Dispatcher } from "./dispatcher.js";
 import { mountDOM } from "./mount-dom.js";
 import { patchDOM } from "./patch-dom.js";
+import { extractSlotContents, resolveSlots } from "./slots.js";
 
 /**
  * Base Component class that provides state management and lifecycle methods.
@@ -19,6 +20,12 @@ export class Component {
     this.vdom = null;
     this.parentEl = null;
     this.isMounted = false;
+    this.slotContents = {};
+    
+    // Extract slot content from props.children if available
+    if (props.children && Array.isArray(props.children)) {
+      this.slotContents = extractSlotContents(props.children);
+    }
     
     // Create internal dispatcher for state updates
     this._dispatcher = new Dispatcher();
@@ -66,7 +73,7 @@ export class Component {
     }
     
     // Initial render
-    this.vdom = this.render(this.props, this.state, this.emit);
+    this.vdom = this._renderWithSlots();
     mountDOM(this.vdom, parentEl);
     this.isMounted = true;
     
@@ -111,6 +118,11 @@ export class Component {
     const oldProps = this.props;
     this.props = { ...this.props, ...newProps };
     
+    // Extract slot content from new props.children if available
+    if (newProps.children && Array.isArray(newProps.children)) {
+      this.slotContents = extractSlotContents(newProps.children);
+    }
+    
     // Call lifecycle method before update
     if (this.beforeUpdate) {
       this.beforeUpdate(oldProps, this.props);
@@ -126,12 +138,21 @@ export class Component {
   }
   
   /**
+   * Internal method to render the component with slots resolved.
+   * @returns {Object} The rendered virtual DOM with slots resolved
+   */
+  _renderWithSlots() {
+    const rawVdom = this.render(this.props, this.state, this.emit);
+    return resolveSlots(rawVdom, this.slotContents);
+  }
+  
+  /**
    * Internal method to handle rendering and DOM updates.
    */
   _renderComponent() {
     if (!this.isMounted) return;
     
-    const newVdom = this.render(this.props, this.state, this.emit);
+    const newVdom = this._renderWithSlots();
     this.vdom = patchDOM(this.vdom, newVdom, this.parentEl);
   }
   

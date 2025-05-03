@@ -491,6 +491,64 @@ function createApp({ state, view, reducers = {} }) {
 	};
 }
 
+function createSlot(name = "default", props = {}, children = []) {
+  return {
+    type: DOM_TYPES.ELEMENT,
+    tag: "slot",
+    props: {
+      ...props,
+      name,
+      __isSlot: true
+    },
+    children,
+    __slotName: name
+  };
+}
+function createSlotContent(slotName = "default", children = []) {
+  return {
+    type: DOM_TYPES.ELEMENT,
+    tag: "slot-content",
+    props: {
+      __isSlotContent: true,
+      name: slotName
+    },
+    children,
+    __targetSlot: slotName
+  };
+}
+function resolveSlots(vdom, slotContents = {}) {
+  if (!vdom) return null;
+  if (typeof vdom !== 'object') return vdom;
+  const clonedVdom = { ...vdom };
+  if (vdom.props && vdom.props.__isSlot) {
+    const slotName = vdom.props.name || "default";
+    if (slotContents[slotName]) {
+      return slotContents[slotName];
+    }
+    return clonedVdom;
+  }
+  if (vdom.children && Array.isArray(vdom.children)) {
+    clonedVdom.children = vdom.children.map(child => resolveSlots(child, slotContents));
+  }
+  return clonedVdom;
+}
+function extractSlotContents(children = []) {
+  const slotContents = {};
+  const normalChildren = [];
+  for (const child of children) {
+    if (child && child.props && child.props.__isSlotContent) {
+      const targetSlot = child.__targetSlot || "default";
+      slotContents[targetSlot] = child.children;
+    } else {
+      normalChildren.push(child);
+    }
+  }
+  if (normalChildren.length > 0 && !slotContents["default"]) {
+    slotContents["default"] = normalChildren;
+  }
+  return slotContents;
+}
+
 class Component {
   constructor(props = {}, { initialState = {} } = {}) {
     this.props = props;
@@ -498,6 +556,10 @@ class Component {
     this.vdom = null;
     this.parentEl = null;
     this.isMounted = false;
+    this.slotContents = {};
+    if (props.children && Array.isArray(props.children)) {
+      this.slotContents = extractSlotContents(props.children);
+    }
     this._dispatcher = new Dispatcher();
     this._subscriptions = [this._dispatcher.afterEveryCommand(this._renderComponent.bind(this))];
     this.setState = this.setState.bind(this);
@@ -519,7 +581,7 @@ class Component {
     if (this.beforeMount) {
       this.beforeMount();
     }
-    this.vdom = this.render(this.props, this.state, this.emit);
+    this.vdom = this._renderWithSlots();
     mountDOM(this.vdom, parentEl);
     this.isMounted = true;
     if (this.mounted) {
@@ -544,6 +606,9 @@ class Component {
   updateProps(newProps) {
     const oldProps = this.props;
     this.props = { ...this.props, ...newProps };
+    if (newProps.children && Array.isArray(newProps.children)) {
+      this.slotContents = extractSlotContents(newProps.children);
+    }
     if (this.beforeUpdate) {
       this.beforeUpdate(oldProps, this.props);
     }
@@ -552,9 +617,13 @@ class Component {
       this.updated(oldProps, this.props);
     }
   }
+  _renderWithSlots() {
+    const rawVdom = this.render(this.props, this.state, this.emit);
+    return resolveSlots(rawVdom, this.slotContents);
+  }
   _renderComponent() {
     if (!this.isMounted) return;
-    const newVdom = this.render(this.props, this.state, this.emit);
+    const newVdom = this._renderWithSlots();
     this.vdom = patchDOM(this.vdom, newVdom, this.parentEl);
   }
   render(props, state, emit) {
@@ -562,4 +631,4 @@ class Component {
   }
 }
 
-export { Component, DOM_TYPES, createApp, createComponent, h, hFragment, hString };
+export { Component, DOM_TYPES, createApp, createComponent, createSlot, createSlotContent, h, hFragment, hString };
