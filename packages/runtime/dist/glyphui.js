@@ -434,6 +434,43 @@ function insert(el, parentEl, index) {
 	}
 }
 
+function isShallowEqual(obj1, obj2) {
+  if (obj1 === obj2) return true;
+  if (!obj1 || !obj2) return false;
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+  if (keys1.length !== keys2.length) return false;
+  return keys1.every(key => {
+    if (key === 'on') {
+      return obj2.hasOwnProperty(key);
+    }
+    if (key === 'key') return true;
+    return Object.prototype.hasOwnProperty.call(obj2, key) && obj1[key] === obj2[key];
+  });
+}
+function isDeepEqual(obj1, obj2) {
+  if (obj1 === obj2) return true;
+  if (!obj1 || !obj2) return false;
+  if (typeof obj1 !== typeof obj2) return false;
+  if (Array.isArray(obj1) && Array.isArray(obj2)) {
+    if (obj1.length !== obj2.length) return false;
+    return obj1.every((val, idx) => isDeepEqual(val, obj2[idx]));
+  }
+  if (typeof obj1 === 'object') {
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+    if (keys1.length !== keys2.length) return false;
+    return keys1.every(key => {
+      if (typeof obj1[key] === 'function' && typeof obj2[key] === 'function') {
+        return true;
+      }
+      return Object.prototype.hasOwnProperty.call(obj2, key) &&
+             isDeepEqual(obj1[key], obj2[key]);
+    });
+  }
+  return false;
+}
+
 function patchDOM(oldVdom, newVdom, parentEl, index) {
   if (!oldVdom) {
     mountDOM(newVdom, parentEl, index);
@@ -443,6 +480,9 @@ function patchDOM(oldVdom, newVdom, parentEl, index) {
     destroyDOM(oldVdom);
     return null;
   }
+  if (oldVdom === newVdom) {
+    return newVdom;
+  }
   if (oldVdom.type !== newVdom.type) {
     if (oldVdom.type === COMPONENT_TYPE && newVdom.type === COMPONENT_TYPE) {
       if (oldVdom.ComponentClass !== newVdom.ComponentClass) {
@@ -451,6 +491,25 @@ function patchDOM(oldVdom, newVdom, parentEl, index) {
       }
     } else {
       replaceNode(oldVdom, newVdom, parentEl, index);
+      return newVdom;
+    }
+  }
+  if (newVdom.type === DOM_TYPES.TEXT && oldVdom.value === newVdom.value) {
+    newVdom.el = oldVdom.el;
+    return newVdom;
+  }
+  if (newVdom.type === DOM_TYPES.ELEMENT && oldVdom.tag !== newVdom.tag) {
+    replaceNode(oldVdom, newVdom, parentEl, index);
+    return newVdom;
+  }
+  if ((newVdom.type === DOM_TYPES.ELEMENT || newVdom.type === COMPONENT_TYPE) &&
+       oldVdom.props && newVdom.props && isShallowEqual(oldVdom.props, newVdom.props)) {
+    if (Array.isArray(oldVdom.children) && Array.isArray(newVdom.children) &&
+        oldVdom.children.length === 0 && newVdom.children.length === 0) {
+      newVdom.el = oldVdom.el;
+      if (newVdom.type === COMPONENT_TYPE) {
+        newVdom.instance = oldVdom.instance;
+      }
       return newVdom;
     }
   }
@@ -487,8 +546,10 @@ function patchElement(oldVdom, newVdom) {
   }
   const el = oldVdom.el;
   newVdom.el = el;
-  updateAttributes(el, oldVdom.props, newVdom.props);
-  updateEventListeners(el, oldVdom, newVdom);
+  if (!isShallowEqual(oldVdom.props, newVdom.props)) {
+    updateAttributes(el, oldVdom.props, newVdom.props);
+    updateEventListeners(el, oldVdom, newVdom);
+  }
   patchChildren(oldVdom, newVdom);
   return newVdom;
 }
@@ -496,21 +557,104 @@ function patchComponent(oldVdom, newVdom) {
   const { instance } = oldVdom;
   newVdom.instance = instance;
   newVdom.el = oldVdom.el;
-  instance.updateProps(newVdom.props);
+  if (!isShallowEqual(oldVdom.props, newVdom.props)) {
+    instance.updateProps(newVdom.props);
+  }
   return newVdom;
+}
+function getNodeKey(vdom) {
+  return vdom && vdom.props ? vdom.props.key : undefined;
 }
 function patchChildren(oldVdom, newVdom) {
   const oldChildren = oldVdom.children || [];
   const newChildren = newVdom.children || [];
   const parentEl = oldVdom.el;
   newVdom.el = parentEl;
+  if (oldChildren.length === 0 && newChildren.length === 0) {
+    return newVdom;
+  }
+  if (oldChildren.length === 0) {
+    newChildren.forEach((child, idx) => {
+      mountDOM(child, parentEl, idx);
+    });
+    return newVdom;
+  }
+  if (newChildren.length === 0) {
+    oldChildren.forEach(child => {
+      destroyDOM(child);
+    });
+    return newVdom;
+  }
+  const hasKeys = newChildren.some(child => getNodeKey(child) !== undefined);
+  if (hasKeys) {
+    patchKeyedChildren(oldChildren, newChildren, parentEl);
+  } else {
+    patchUnkeyedChildren(oldChildren, newChildren, parentEl);
+  }
+  return newVdom;
+}
+function patchUnkeyedChildren(oldChildren, newChildren, parentEl) {
   const maxLength = Math.max(oldChildren.length, newChildren.length);
   for (let i = 0; i < maxLength; i++) {
     const oldChild = oldChildren[i];
     const newChild = newChildren[i];
     patchDOM(oldChild, newChild, parentEl, i);
   }
-  return newVdom;
+}
+function patchKeyedChildren(oldChildren, newChildren, parentEl) {
+  const oldKeyedChildren = {};
+  const oldUnkeyedChildren = [];
+  oldChildren.forEach((child, i) => {
+    const key = getNodeKey(child);
+    if (key !== undefined) {
+      oldKeyedChildren[key] = { vdom: child, index: i };
+    } else {
+      oldUnkeyedChildren.push({ vdom: child, index: i });
+    }
+  });
+  const nodesToMount = [];
+  const patchedNodes = new Set();
+  newChildren.forEach((newChild, newIndex) => {
+    const key = getNodeKey(newChild);
+    let oldChildEntry;
+    if (key !== undefined) {
+      oldChildEntry = oldKeyedChildren[key];
+      if (oldChildEntry) {
+        patchDOM(oldChildEntry.vdom, newChild, parentEl, newIndex);
+        patchedNodes.add(key);
+        if (newIndex !== oldChildEntry.index) {
+          const el = newChild.el;
+          const referenceNode = parentEl.childNodes[newIndex + 1] || null;
+          parentEl.insertBefore(el, referenceNode);
+        }
+      } else {
+        nodesToMount.push({ vdom: newChild, index: newIndex });
+      }
+    } else {
+      if (oldUnkeyedChildren.length > 0) {
+        oldChildEntry = oldUnkeyedChildren.shift();
+        patchDOM(oldChildEntry.vdom, newChild, parentEl, newIndex);
+        if (newIndex !== oldChildEntry.index) {
+          const el = newChild.el;
+          const referenceNode = parentEl.childNodes[newIndex + 1] || null;
+          parentEl.insertBefore(el, referenceNode);
+        }
+      } else {
+        nodesToMount.push({ vdom: newChild, index: newIndex });
+      }
+    }
+  });
+  nodesToMount.forEach(({ vdom, index }) => {
+    mountDOM(vdom, parentEl, index);
+  });
+  Object.keys(oldKeyedChildren).forEach(key => {
+    if (!patchedNodes.has(key)) {
+      destroyDOM(oldKeyedChildren[key].vdom);
+    }
+  });
+  oldUnkeyedChildren.forEach(({ vdom }) => {
+    destroyDOM(vdom);
+  });
 }
 function replaceNode(oldVdom, newVdom, parentEl, index) {
   destroyDOM(oldVdom);
@@ -648,4 +792,4 @@ class Component {
   }
 }
 
-export { Component, DOM_TYPES, createApp, createComponent, createSlot, createSlotContent, h, hFragment, hString };
+export { Component, DOM_TYPES, createApp, createComponent, createSlot, createSlotContent, h, hFragment, hString, isDeepEqual, isShallowEqual };
