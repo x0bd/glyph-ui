@@ -37,6 +37,67 @@ function mapTextNodes(children) {
 	);
 }
 
+function createSlot(name = "default", props = {}, children = []) {
+  return {
+    type: DOM_TYPES.ELEMENT,
+    tag: "slot",
+    props: {
+      ...props,
+      name,
+      __isSlot: true
+    },
+    children,
+    __slotName: name
+  };
+}
+function createSlotContent(slotName = "default", children = []) {
+  return {
+    type: DOM_TYPES.ELEMENT,
+    tag: "slot-content",
+    props: {
+      __isSlotContent: true,
+      name: slotName
+    },
+    children,
+    __targetSlot: slotName
+  };
+}
+function resolveSlots(vdom, slotContents = {}) {
+  if (!vdom) return null;
+  if (typeof vdom !== 'object') return vdom;
+  const clonedVdom = { ...vdom };
+  if (vdom.props && vdom.props.__isSlot) {
+    const slotName = vdom.props.name || "default";
+    if (slotContents[slotName] && slotContents[slotName].length > 0) {
+      return hFragment(slotContents[slotName].filter(Boolean));
+    }
+    return clonedVdom;
+  }
+  if (vdom.children && Array.isArray(vdom.children)) {
+    clonedVdom.children = vdom.children
+      .map(child => resolveSlots(child, slotContents))
+      .filter(Boolean);
+  }
+  return clonedVdom;
+}
+function extractSlotContents(children = []) {
+  const slotContents = {};
+  const normalChildren = [];
+  const validChildren = children.filter(Boolean);
+  for (const child of validChildren) {
+    if (child && child.props && child.props.__isSlotContent) {
+      const targetSlot = child.__targetSlot || "default";
+      slotContents[targetSlot] = (child.children || []).filter(Boolean);
+    } else if (child) {
+      normalChildren.push(child);
+    }
+  }
+  if (normalChildren.length > 0 && !slotContents["default"]) {
+    slotContents["default"] = normalChildren;
+  }
+  return slotContents;
+}
+
 const COMPONENT_TYPE = "component";
 function createComponent(ComponentClass, props = {}, children = []) {
   return {
@@ -61,17 +122,26 @@ class FunctionalComponentWrapper {
     this.props = props;
     this.vdom = null;
     this.parentEl = null;
+    this.slotContents = {};
+    if (props.children && Array.isArray(props.children)) {
+      this.slotContents = extractSlotContents(props.children);
+    }
   }
   mount(parentEl) {
     this.parentEl = parentEl;
-    this.vdom = this.renderFn(this.props);
+    const rawVdom = this.renderFn(this.props);
+    this.vdom = resolveSlots(rawVdom, this.slotContents);
     return this;
   }
   unmount() {
   }
   updateProps(newProps) {
     this.props = { ...this.props, ...newProps };
-    this.vdom = this.renderFn(this.props);
+    if (newProps.children && Array.isArray(newProps.children)) {
+      this.slotContents = extractSlotContents(newProps.children);
+    }
+    const rawVdom = this.renderFn(this.props);
+    this.vdom = resolveSlots(rawVdom, this.slotContents);
     return this.vdom;
   }
 }
@@ -293,6 +363,11 @@ function updateAttributes(el, oldAttrs = {}, newAttrs = {}) {
 }
 
 function mountDOM(vdom, parentEl, index) {
+	if (!vdom) return null;
+	if (vdom.type === undefined) {
+		console.warn('Invalid vdom node:', vdom);
+		return null;
+	}
 	switch (vdom.type) {
 		case DOM_TYPES.TEXT: {
 			createTextNode(vdom, parentEl, index);
@@ -489,64 +564,6 @@ function createApp({ state, view, reducers = {} }) {
 			emit(eventName, payload);
 		},
 	};
-}
-
-function createSlot(name = "default", props = {}, children = []) {
-  return {
-    type: DOM_TYPES.ELEMENT,
-    tag: "slot",
-    props: {
-      ...props,
-      name,
-      __isSlot: true
-    },
-    children,
-    __slotName: name
-  };
-}
-function createSlotContent(slotName = "default", children = []) {
-  return {
-    type: DOM_TYPES.ELEMENT,
-    tag: "slot-content",
-    props: {
-      __isSlotContent: true,
-      name: slotName
-    },
-    children,
-    __targetSlot: slotName
-  };
-}
-function resolveSlots(vdom, slotContents = {}) {
-  if (!vdom) return null;
-  if (typeof vdom !== 'object') return vdom;
-  const clonedVdom = { ...vdom };
-  if (vdom.props && vdom.props.__isSlot) {
-    const slotName = vdom.props.name || "default";
-    if (slotContents[slotName]) {
-      return slotContents[slotName];
-    }
-    return clonedVdom;
-  }
-  if (vdom.children && Array.isArray(vdom.children)) {
-    clonedVdom.children = vdom.children.map(child => resolveSlots(child, slotContents));
-  }
-  return clonedVdom;
-}
-function extractSlotContents(children = []) {
-  const slotContents = {};
-  const normalChildren = [];
-  for (const child of children) {
-    if (child && child.props && child.props.__isSlotContent) {
-      const targetSlot = child.__targetSlot || "default";
-      slotContents[targetSlot] = child.children;
-    } else {
-      normalChildren.push(child);
-    }
-  }
-  if (normalChildren.length > 0 && !slotContents["default"]) {
-    slotContents["default"] = normalChildren;
-  }
-  return slotContents;
 }
 
 class Component {

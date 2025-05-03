@@ -1,4 +1,4 @@
-import { DOM_TYPES, h } from "./h.js";
+import { DOM_TYPES, h, hFragment } from "./h.js";
 
 /**
  * Creates a slot where parent components can inject content
@@ -62,15 +62,19 @@ export function resolveSlots(vdom, slotContents = {}) {
   // If this is a slot, replace it with the corresponding content or use default
   if (vdom.props && vdom.props.__isSlot) {
     const slotName = vdom.props.name || "default";
-    if (slotContents[slotName]) {
-      return slotContents[slotName];
+    if (slotContents[slotName] && slotContents[slotName].length > 0) {
+      // Wrap the slot content in a fragment to ensure it has a proper vdom structure
+      return hFragment(slotContents[slotName].filter(Boolean));
     }
     return clonedVdom;
   }
   
   // For elements and fragments, process children recursively
   if (vdom.children && Array.isArray(vdom.children)) {
-    clonedVdom.children = vdom.children.map(child => resolveSlots(child, slotContents));
+    // Process each child and filter out any null results
+    clonedVdom.children = vdom.children
+      .map(child => resolveSlots(child, slotContents))
+      .filter(Boolean); // Remove null/undefined values
   }
   
   return clonedVdom;
@@ -86,12 +90,16 @@ export function extractSlotContents(children = []) {
   const slotContents = {};
   const normalChildren = [];
   
-  for (const child of children) {
+  // Filter out null values from children
+  const validChildren = children.filter(Boolean);
+  
+  for (const child of validChildren) {
     // Check if the child is slot content
     if (child && child.props && child.props.__isSlotContent) {
       const targetSlot = child.__targetSlot || "default";
-      slotContents[targetSlot] = child.children;
-    } else {
+      // Filter out null values from slot content children
+      slotContents[targetSlot] = (child.children || []).filter(Boolean);
+    } else if (child) {
       normalChildren.push(child);
     }
   }

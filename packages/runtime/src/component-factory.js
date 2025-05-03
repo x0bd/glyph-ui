@@ -1,4 +1,5 @@
 import { DOM_TYPES } from "./h.js";
+import { extractSlotContents, resolveSlots } from "./slots.js";
 
 /**
  * Special DOM type for components
@@ -60,11 +61,18 @@ class FunctionalComponentWrapper {
     this.props = props;
     this.vdom = null;
     this.parentEl = null;
+    this.slotContents = {};
+    
+    // Extract slot content from props.children if available
+    if (props.children && Array.isArray(props.children)) {
+      this.slotContents = extractSlotContents(props.children);
+    }
   }
   
   mount(parentEl) {
     this.parentEl = parentEl;
-    this.vdom = this.renderFn(this.props);
+    const rawVdom = this.renderFn(this.props);
+    this.vdom = resolveSlots(rawVdom, this.slotContents);
     return this;
   }
   
@@ -74,7 +82,14 @@ class FunctionalComponentWrapper {
   
   updateProps(newProps) {
     this.props = { ...this.props, ...newProps };
-    this.vdom = this.renderFn(this.props);
+    
+    // Update slot contents when props change
+    if (newProps.children && Array.isArray(newProps.children)) {
+      this.slotContents = extractSlotContents(newProps.children);
+    }
+    
+    const rawVdom = this.renderFn(this.props);
+    this.vdom = resolveSlots(rawVdom, this.slotContents);
     return this.vdom;
   }
 } 

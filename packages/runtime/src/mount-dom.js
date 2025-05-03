@@ -13,6 +13,15 @@ import { DOM_TYPES } from "./h";
  * @param {HTMLElement} parentEl the host element to mount the virtual DOM node to
  */
 export function mountDOM(vdom, parentEl, index) {
+	// Skip null or undefined vdom nodes
+	if (!vdom) return null;
+	
+	// Ensure vdom has a type
+	if (vdom.type === undefined) {
+		console.warn('Invalid vdom node:', vdom);
+		return null;
+	}
+	
 	switch (vdom.type) {
 		case DOM_TYPES.TEXT: {
 			createTextNode(vdom, parentEl, index);
