@@ -206,106 +206,64 @@ class TodoList extends Component {
     
     const content = [];
     
-    // Show todos or empty state
-    if (filteredTodos.length === 0) {
-      if (store.todos.length === 0) {
+    // Show todos or render nothing if empty
+    if (filteredTodos.length > 0) {
+      // Create todos directly
+      filteredTodos.forEach(todo => {
         content.push(
-          h('div', { 
-            style: { 
-              textAlign: 'center', 
-              padding: '20px',
-              color: 'var(--text-secondary)'
-            } 
-          }, ['No tasks yet. Add your first task above!'])
-        );
-      } else {
-        content.push(
-          h('div', { 
-            style: { 
-              textAlign: 'center', 
-              padding: '20px',
-              color: 'var(--text-secondary)'
-            } 
-          }, [`No ${store.filter} tasks found.`])
-        );
-      }
-    } else {
-      // Create a container for the todo items
-      const todoItems = h('div', { class: 'todos' }, 
-        filteredTodos.map(todo => 
           h('div', {
             class: `todo-item ${todo.completed ? 'completed' : ''}`,
             key: todo.id
           }, [
-            h('div', { class: 'todo-checkbox' }, [
-              h('input', {
-                type: 'checkbox',
-                checked: todo.completed,
-                id: `todo-${todo.id}`,
-                on: { change: () => store.toggleTodo(todo.id) }
-              }),
-              h('label', { 
-                for: `todo-${todo.id}`
-              }, [todo.text])
-            ]),
+            // Use a div for the text content
+            h('div', { class: 'todo-content' }, [todo.text]),
+            
+            // Group buttons in todo-actions
             h('div', { class: 'todo-actions' }, [
               h('button', {
                 class: 'secondary small',
-                on: { click: () => store.removeTodo(todo.id) }
+                on: { click: () => store.toggleTodo(todo.id) } // Toggle action
+              }, [todo.completed ? 'Undo' : 'Done']), // Dynamic button text
+              h('button', {
+                class: 'secondary small remove',
+                on: { click: () => store.removeTodo(todo.id) } // Remove action
               }, ['Remove'])
             ])
           ])
-        )
-      );
-      
-      content.push(todoItems);
+        );
+      });
     }
-    
-    // Add filter controls and stats
-    content.push(
-      h('div', { class: 'stats' }, [
-        h('div', {}, [
-          `${stats.active} active, ${stats.completed} completed`
-        ]),
-        h('div', { 
-          style: { 
-            display: 'flex',
-            gap: '8px'
-          } 
-        }, [
-          stats.completed > 0 ? 
-            h('button', {
-              class: 'secondary small',
+
+    // Render the main list container
+    return h('div', { class: 'todo-list-container' }, [
+      // Render the todos div (will be empty if no content)
+      h('div', { class: 'todos' }, content), 
+      
+      // Conditionally render stats/filters only if there are todos
+      store.todos.length > 0 ? 
+        h('div', { class: 'stats' }, [ 
+          h('span', {}, [`${stats.active} items left`]),
+          h('div', { class: 'filters' }, [
+            h('button', { 
+              class: `filter ${store.filter === 'all' ? 'active' : ''}`,
+              on: { click: () => store.setFilter('all') }
+            }, ['All']),
+            h('button', { 
+              class: `filter ${store.filter === 'active' ? 'active' : ''}`,
+              on: { click: () => store.setFilter('active') }
+            }, ['Active']),
+            h('button', { 
+              class: `filter ${store.filter === 'completed' ? 'active' : ''}`,
+              on: { click: () => store.setFilter('completed') }
+            }, ['Completed'])
+          ]),
+          // Conditionally render Clear Completed button
+          stats.completed > 0 ?
+            h('button', { 
+              class: 'secondary small clear-completed',
               on: { click: () => store.clearCompleted() }
-            }, ['Clear completed']) : null
-        ])
-      ])
-    );
-    
-    // Add filter tabs above the todo list
-    const filterTabs = h('div', { 
-      style: { 
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '16px'
-      } 
-    }, [
-      ['all', 'active', 'completed'].map(filter => 
-        h('button', {
-          class: `secondary small ${store.filter === filter ? 'active' : ''}`,
-          style: {
-            opacity: store.filter === filter ? 1 : 0.7,
-            borderColor: store.filter === filter ? 'var(--accent-color)' : 'var(--border-color)'
-          },
-          on: { click: () => store.setFilter(filter) }
-        }, [filter.charAt(0).toUpperCase() + filter.slice(1)])
-      )
-    ]);
-    
-    // Return everything wrapped in a container
-    return h('div', { class: 'todos-container' }, [
-      filterTabs,
-      ...content
+            }, ['Clear Completed']) : h('span') // Render empty span if no completed tasks
+        ]) : null // Render nothing if store.todos is empty
     ]);
   }
 }
