@@ -853,4 +853,74 @@ function createDelayedComponent(Component, delayMs = 1000) {
   });
 }
 
-export { Component, DOM_TYPES, createApp, createComponent, createDelayedComponent, createSlot, createSlotContent, h, hFragment, hString, isDeepEqual, isShallowEqual, lazy };
+function createStore(createState) {
+  let state;
+  const listeners = new Set();
+  const setState = (partial, replace) => {
+    const nextState = typeof partial === 'function'
+      ? partial(state)
+      : partial;
+    if (Object.is(nextState, state)) return;
+    state = replace ? nextState : { ...state, ...nextState };
+    listeners.forEach(listener => listener(state));
+  };
+  const destroy = () => {
+    listeners.clear();
+  };
+  const getState = () => state;
+  const subscribe = (listener) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+  state = createState(setState, getState);
+  return {
+    getState,
+    setState,
+    subscribe,
+    destroy
+  };
+}
+function connect(store, selector = state => state) {
+  return (Component) => {
+    return class ConnectedComponent extends Component {
+      constructor(props) {
+        const selectedState = selector(store.getState());
+        super({ ...props, store: selectedState });
+        this.selectedState = selectedState;
+        this.unsubscribe = store.subscribe(storeState => {
+          const nextSelectedState = selector(storeState);
+          if (!Object.is(nextSelectedState, this.selectedState)) {
+            this.selectedState = nextSelectedState;
+            this.updateProps({ ...this.props, store: nextSelectedState });
+          }
+        });
+      }
+      beforeUnmount() {
+        if (this.unsubscribe) {
+          this.unsubscribe();
+        }
+        if (super.beforeUnmount) {
+          super.beforeUnmount();
+        }
+      }
+    };
+  };
+}
+function createActions(store, actions) {
+  const boundActions = {};
+  for (const key in actions) {
+    if (typeof actions[key] === 'function') {
+      boundActions[key] = (...args) => {
+        const currentState = store.getState();
+        const result = actions[key](currentState, ...args);
+        if (result && typeof result === 'object') {
+          store.setState(result);
+        }
+        return result;
+      };
+    }
+  }
+  return boundActions;
+}
+
+export { Component, DOM_TYPES, connect, createActions, createApp, createComponent, createDelayedComponent, createSlot, createSlotContent, createStore, h, hFragment, hString, isDeepEqual, isShallowEqual, lazy };

@@ -13,3 +13,6 @@ export { isShallowEqual, isDeepEqual } from "./utils/object-utils.js";
 
 // Export lazy loading functionality
 export { lazy, createDelayedComponent } from "./lazy.js";
+
+// Export state management functionality
+export { createStore, connect, createActions } from "./glyph-state.js";
