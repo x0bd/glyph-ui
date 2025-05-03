@@ -149,10 +149,9 @@ const ConnectedCounterBonus = connect(counterStore)(CounterBonus);
 // Todo Components
 // =======================================================
 
-// Todo Input Component - Simplified for debugging
+// Todo Input Component
 class TodoInput extends Component {
   render(props) {
-    console.log("TodoInput rendering, newTodoText:", props.store.newTodoText);
     const { store } = props;
     
     return h('div', { class: 'todo-input' }, [
@@ -171,90 +170,73 @@ class TodoInput extends Component {
   }
 }
 
-// Connect TodoInput to todoStore - with more explicit selector
-const ConnectedTodoInput = connect(todoStore, (state) => {
-  console.log("TodoInput selector called, state:", state);
-  return {
-    newTodoText: state.newTodoText,
-    setNewTodoText: state.setNewTodoText,
-    addTodo: state.addTodo
-  };
-})(TodoInput);
+// Connect TodoInput to todoStore
+const ConnectedTodoInput = connect(todoStore, (state) => ({
+  newTodoText: state.newTodoText,
+  setNewTodoText: state.setNewTodoText,
+  addTodo: state.addTodo
+}))(TodoInput);
 
-// Todo List Component - Completely rewritten for stability
+// Todo List Component
 class TodoList extends Component {
-  constructor(props) {
-    super(props);
-    // Add debugging ref to help track the component instance
-    this.instanceId = Math.random().toString(36).substr(2, 9);
-    console.log(`TodoList instance created: ${this.instanceId}`);
-  }
-  
   render(props) {
     const { store } = props;
     const { todos } = store;
     
-    console.log(`TodoList (${this.instanceId}) rendering, todos:`, todos, 
-      "length:", todos ? todos.length : 0);
+    // Build an array of elements to render
+    const contentElements = [];
     
-    // Handle empty state
-    if (!todos || todos.length === 0) {
-      return h('div', { class: 'todos' }, [
-        h('p', {}, ['No todos yet. Add some!'])
-      ]);
-    }
-    
-    // Render each todo item separately
-    return h('div', { class: 'todos', id: 'todos-list' }, [
-      // Map over the todos array to create individual todo items
-      ...todos.map(todo => {
-        return h('div', {
-          key: todo.id,
-          class: `todo-item ${todo.completed ? 'completed' : ''}`,
-          id: `todo-${todo.id}`,
-          'data-id': todo.id
-        }, [
-          // Todo text
-          h('span', { 
-            style: { cursor: 'pointer' },
-            on: { click: () => store.toggleTodo(todo.id) }
-          }, [todo.text]),
-          
-          // Action buttons
-          h('div', { class: 'todo-actions' }, [
-            h('button', { 
-              on: { click: () => store.toggleTodo(todo.id) } 
-            }, [todo.completed ? 'Undo' : 'Complete']),
+    // Show "no todos" message or the list
+    if (!Array.isArray(todos) || todos.length === 0) {
+      contentElements.push(h('p', {}, ['No todos yet. Add some!']));
+    } else {
+      // Add all the todo items
+      todos.forEach(todo => {
+        contentElements.push(
+          h('div', {
+            key: todo.id,
+            class: `todo-item ${todo.completed ? 'completed' : ''}`,
+            id: `todo-${todo.id}`
+          }, [
+            // Todo text
+            h('span', { 
+              style: { cursor: 'pointer' },
+              on: { click: () => store.toggleTodo(todo.id) }
+            }, [todo.text]),
             
-            h('button', { 
-              class: 'decrement',
-              on: { click: () => store.removeTodo(todo.id) } 
-            }, ['Remove'])
+            // Action buttons
+            h('div', { class: 'todo-actions' }, [
+              h('button', { 
+                on: { click: () => store.toggleTodo(todo.id) } 
+              }, [todo.completed ? 'Undo' : 'Complete']),
+              
+              h('button', { 
+                class: 'decrement',
+                on: { click: () => store.removeTodo(todo.id) } 
+              }, ['Remove'])
+            ])
           ])
-        ]);
-      }),
+        );
+      });
       
       // Add the clear completed button if needed
-      todos.some(todo => todo.completed) 
-        ? h('button', {
+      if (todos.some(todo => todo.completed)) {
+        contentElements.push(
+          h('button', {
             style: { marginTop: '10px' },
             on: { click: () => store.clearCompleted() }
-          }, ['Clear Completed']) 
-        : null
-    ]);
+          }, ['Clear Completed'])
+        );
+      }
+    }
+    
+    // Return the main container div with the content
+    return h('div', { class: 'todos', id: 'todos-list' }, contentElements);
   }
 }
 
-// Connect TodoList to todoStore - with more explicit selector
-const ConnectedTodoList = connect(todoStore, (state) => {
-  console.log("TodoList selector called, todos length:", state.todos.length);
-  return {
-    todos: state.todos,
-    toggleTodo: state.toggleTodo,
-    removeTodo: state.removeTodo,
-    clearCompleted: state.clearCompleted
-  };
-})(TodoList);
+// Connect TodoList to todoStore
+const ConnectedTodoList = connect(todoStore)(TodoList);
 
 // =======================================================
 // Theme Components
