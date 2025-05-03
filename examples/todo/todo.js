@@ -1,140 +1,154 @@
 // import { createApp, h, hFragment } from "https://unpkg.com/glyphui@1.2.0";
 import {
-	createApp,
+	Component,
+	createComponent,
 	h,
 	hFragment,
 	hString,
 } from "./../../packages/runtime/dist/glyphui.js";
 
-const state = {
-	currentTodo: "",
-	edit: {
-		idx: null,
-		original: null,
-		edited: null,
-	},
-	todos: ["watch OOP vs FP video", "feed the cat", "publish framework"],
-};
+class TodoApp extends Component {
+	constructor() {
+		super({}, {
+			initialState: {
+				currentTodo: "",
+				edit: {
+					idx: null,
+					original: null,
+					edited: null,
+				},
+				todos: ["watch OOP vs FP video", "feed the cat", "publish framework"],
+			}
+		});
+	}
 
-const reducers = {
-	"update-current-todo": (state, currentTodo) => ({
-		...state,
-		currentTodo,
-	}),
+	updateCurrentTodo(currentTodo) {
+		this.setState({ currentTodo });
+	}
 
-	"add-todo": (state) => ({
-		...state,
-		currentTodo: "",
-		todos: [...state.todos, state.currentTodo],
-	}),
+	addTodo() {
+		this.setState({
+			currentTodo: "",
+			todos: [...this.state.todos, this.state.currentTodo],
+		});
+	}
 
-	"start-editing-todo": (state, idx) => ({
-		...state,
-		edit: {
-			idx,
-			original: state.todos[idx],
-			edited: state.todos[idx],
-		},
-	}),
+	startEditingTodo(idx) {
+		this.setState({
+			edit: {
+				idx,
+				original: this.state.todos[idx],
+				edited: this.state.todos[idx],
+			},
+		});
+	}
 
-	"edit-todo": (state, edited) => ({
-		...state,
-		edit: { ...state.edit, edited },
-	}),
+	editTodo(edited) {
+		this.setState({
+			edit: { ...this.state.edit, edited },
+		});
+	}
 
-	"save-edited-todo": (state) => {
-		const todos = [...state.todos];
-		todos[state.edit.idx] = state.edit.edited;
+	saveEditedTodo() {
+		const todos = [...this.state.todos];
+		todos[this.state.edit.idx] = this.state.edit.edited;
 
-		return {
-			...state,
+		this.setState({
 			edit: { idx: null, original: null, edited: null },
 			todos,
-		};
-	},
+		});
+	}
 
-	"cancel-editing-todo": (state) => ({
-		...state,
-		edit: { idx: null, original: null, edited: null },
-	}),
+	cancelEditingTodo() {
+		this.setState({
+			edit: { idx: null, original: null, edited: null },
+		});
+	}
 
-	"remove-todo": (state, idx) => ({
-		...state,
-		todos: state.todos.filter((_, i) => i !== idx),
-	}),
-};
+	removeTodo(idx) {
+		this.setState({
+			todos: this.state.todos.filter((_, i) => i !== idx),
+		});
+	}
 
-function App(state, emit) {
-	return hFragment([CreateTodo(state, emit), TodoList(state, emit)]);
-}
+	render(props, state) {
+		return hFragment([
+			this.renderCreateTodo(state),
+			this.renderTodoList(state)
+		]);
+	}
 
-function CreateTodo({ currentTodo }, emit) {
-	return h("div", { class: "main" }, [
-		h("label", { for: "todo-input" }, ["new todo"]),
-		h("input", {
-			type: "text",
-			id: "todo-input",
-			value: currentTodo,
-			on: {
-				input: ({ target }) =>
-					emit("update-current-todo", target.value),
-				keydown: ({ key }) => {
-					if (key === "Enter" && currentTodo.length >= 3) {
-						emit("add-todo");
-					}
-				},
-			},
-		}),
-		h(
-			"button",
-			{
-				disabled: currentTodo.length < 3,
-				on: { click: () => emit("add-todo") },
-			},
-			["Add"]
-		),
-	]);
-}
-
-function TodoList({ todos, edit }, emit) {
-	return h(
-		"div",
-		{ class: "todo-list" },
-		todos.map((todo, i) => TodoItem({ todo, i, edit }, emit))
-	);
-}
-
-function TodoItem({ todo, i, edit }, emit) {
-	const isEditing = edit.idx === i;
-
-	return isEditing
-		? h("div", { class: "todo-item" }, [
-				h("input", {
-					value: edit.edited,
-					on: {
-						input: ({ target }) => emit("edit-todo", target.value),
+	renderCreateTodo(state) {
+		const { currentTodo } = state;
+		return h("div", { class: "main" }, [
+			h("label", { for: "todo-input" }, ["new todo"]),
+			h("input", {
+				type: "text",
+				id: "todo-input",
+				value: currentTodo,
+				on: {
+					input: ({ target }) => this.updateCurrentTodo(target.value),
+					keydown: ({ key }) => {
+						if (key === "Enter" && currentTodo.length >= 3) {
+							this.addTodo();
+						}
 					},
-				}),
-				h("button", { on: { click: () => emit("save-edited-todo") } }, [
-					"Save",
-				]),
-				h(
-					"button",
-					{ on: { click: () => emit("cancel-editing-todo") } },
-					["Cancel"]
-				),
-		  ])
-		: h("div", { class: "todo-item" }, [
-				hString("•"),
-				h(
-					"span",
-					{ on: { dblclick: () => emit("start-editing-todo", i) } },
-					[todo]
-				),
-				h("button", { on: { click: () => emit("remove-todo", i) } }, [
-					"Done",
-				]),
-		  ]);
+				},
+			}),
+			h(
+				"button",
+				{
+					disabled: currentTodo.length < 3,
+					on: { click: () => this.addTodo() },
+				},
+				["Add"]
+			),
+		]);
+	}
+
+	renderTodoList(state) {
+		const { todos, edit } = state;
+		return h(
+			"div",
+			{ class: "todo-list" },
+			todos.map((todo, i) => this.renderTodoItem(todo, i, edit))
+		);
+	}
+
+	renderTodoItem(todo, i, edit) {
+		const isEditing = edit.idx === i;
+
+		return isEditing
+			? h("div", { class: "todo-item" }, [
+					h("input", {
+						value: edit.edited,
+						on: {
+							input: ({ target }) => this.editTodo(target.value),
+						},
+					}),
+					h("button", { on: { click: () => this.saveEditedTodo() } }, [
+						"Save",
+					]),
+					h(
+						"button",
+						{ on: { click: () => this.cancelEditingTodo() } },
+						["Cancel"]
+					),
+				])
+			: h("div", { class: "todo-item" }, [
+					hString("•"),
+					h(
+						"span",
+						{ on: { dblclick: () => this.startEditingTodo(i) } },
+						[todo]
+					),
+					h("button", { on: { click: () => this.removeTodo(i) } }, [
+						"Done",
+					]),
+				]);
+	}
 }
 
-createApp({ state, reducers, view: App }).mount(document.body);
+// Mount the app
+const app = new TodoApp();
+app.mount(document.body);

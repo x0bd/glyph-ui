@@ -10,11 +10,11 @@
 - [x] **Fragment Support** - Ability to render multiple elements without a wrapper
 - [x] **Stateful Components** - Components with their own internal state and lifecycle
 - [x] **Component Methods** - Adding custom functions to components for more control
+- [x] **Sub-components** - Composing components within components (nesting)
 
 ## 🚧 Coming Soon
 
 ### Components and Composition
-- [ ] **Sub-components** - Composing components within components (nesting)
 - [ ] **Slots** - Content projection for more flexible and reusable components
 
 ### Performance & Rendering
