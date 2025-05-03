@@ -41,3 +41,33 @@ export function removeEventListeners(listeners = {}, el) {
 		el.removeEventListener(eventName, handler);
 	});
 }
+
+/**
+ * Updates the event listeners on an element by removing old ones and adding new ones.
+ * 
+ * @param {HTMLElement} el - Element to update listeners on
+ * @param {Object} oldVdom - Old virtual DOM node with listeners
+ * @param {Object} newVdom - New virtual DOM node with listeners
+ */
+export function updateEventListeners(el, oldVdom, newVdom) {
+	const oldListeners = oldVdom.listeners || {};
+	const oldProps = oldVdom.props || {};
+	const newProps = newVdom.props || {};
+	
+	// No event listeners in either old or new vdom
+	if (!oldProps.on && !newProps.on) {
+		return;
+	}
+	
+	// Remove old listeners
+	if (oldProps.on) {
+		removeEventListeners(oldListeners, el);
+	}
+	
+	// Add new listeners
+	if (newProps.on) {
+		newVdom.listeners = addEventListeners(newProps.on, el);
+	} else {
+		newVdom.listeners = {};
+	}
+}

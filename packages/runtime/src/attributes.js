@@ -87,3 +87,72 @@ function setClass(el, className) {
 		el.classList.add(...className);
 	}
 }
+
+/**
+ * Updates the attributes of an element by comparing old and new attributes.
+ * Removes attributes that are not present in the new attributes,
+ * updates attributes that have changed, and adds new attributes.
+ * 
+ * @param {HTMLElement} el - The element to update attributes on
+ * @param {Object} oldAttrs - The old attributes object
+ * @param {Object} newAttrs - The new attributes object 
+ */
+export function updateAttributes(el, oldAttrs = {}, newAttrs = {}) {
+	const { on: oldEvents, ...oldAttributes } = oldAttrs;
+	const { on: newEvents, ...newAttributes } = newAttrs;
+	
+	// Handle removed attributes
+	for (const name in oldAttributes) {
+		// Skip event handlers and special props like 'key'
+		if (name === 'key') continue;
+		
+		// If attribute doesn't exist in new set, remove it
+		if (!(name in newAttributes)) {
+			if (name === 'class') {
+				el.className = '';
+			} else if (name === 'style') {
+				// Remove all styles
+				for (const styleName in oldAttributes.style) {
+					removeStyle(el, styleName);
+				}
+			} else {
+				removeAttribute(el, name);
+			}
+		}
+	}
+	
+	// Set new or changed attributes
+	for (const name in newAttributes) {
+		// Skip event handlers and special props
+		if (name === 'key') continue;
+		
+		const oldValue = oldAttributes[name];
+		const newValue = newAttributes[name];
+		
+		// Only update if values are different
+		if (oldValue !== newValue) {
+			if (name === 'class') {
+				setClass(el, newValue);
+			} else if (name === 'style') {
+				// Handle style updates
+				const oldStyles = oldAttributes.style || {};
+				
+				// Remove styles not in new set
+				for (const styleName in oldStyles) {
+					if (!(styleName in newValue)) {
+						removeStyle(el, styleName);
+					}
+				}
+				
+				// Set new styles
+				for (const styleName in newValue) {
+					if (oldStyles[styleName] !== newValue[styleName]) {
+						setStyle(el, styleName, newValue[styleName]);
+					}
+				}
+			} else {
+				setAttribute(el, name, newValue);
+			}
+		}
+	}
+}

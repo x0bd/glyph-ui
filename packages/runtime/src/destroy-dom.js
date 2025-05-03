@@ -1,21 +1,17 @@
-import { removeEventListeners } from "./events";
-import { DOM_TYPES } from "./h";
+import { COMPONENT_TYPE } from "./component-factory.js";
+import { removeEventListeners } from "./events.js";
+import { DOM_TYPES } from "./h.js";
 import { assert } from "./utils/assert";
 
 /**
- * Unmounts the DOM nodes for a virtual DOM tree recursively.
+ * Removes event listeners, removes elements from the DOM, and cleans up references.
  *
- * Removes all `el` references from the vdom tree and removes all the event
- * listeners from the DOM.
- *
- * @param {object} vdom the virtual DOM node to destroy
+ * @param {object} vdom the vdom element to destroy
  */
 export function destroyDOM(vdom) {
-	const { type, el } = vdom;
+	if (!vdom) return;
 
-	assert(!!el, "Can only destroy DOM nodes that have been mounted");
-
-	switch (type) {
+	switch (vdom.type) {
 		case DOM_TYPES.TEXT: {
 			removeTextNode(vdom);
 			break;
@@ -30,41 +26,83 @@ export function destroyDOM(vdom) {
 			removeFragmentNodes(vdom);
 			break;
 		}
+		
+		case COMPONENT_TYPE: {
+			removeComponentNode(vdom);
+			break;
+		}
 
 		default: {
-			throw new Error(`Can't destroy DOM of type: ${type}`);
+			throw new Error(`Cannot destroy DOM of type: ${vdom.type}`);
 		}
 	}
-
-	delete vdom.el;
 }
 
+/**
+ * Removes the text node from the DOM and cleans up the vdom.
+ *
+ * @param {object} vdom vdom text node
+ */
 function removeTextNode(vdom) {
 	const { el } = vdom;
-
-	assert(el instanceof Text);
-
 	el.remove();
+	vdom.el = null; // Clean up reference to the DOM node
 }
 
+/**
+ * Removes the element node from the DOM, removes event listeners, and cleans up the vdom.
+ *
+ * @param {object} vdom vdom element node
+ */
 function removeElementNode(vdom) {
-	const { el, children, listeners } = vdom;
+	const { el, listeners, children } = vdom;
 
-	assert(el instanceof HTMLElement);
-
-	el.remove();
-	children.forEach(destroyDOM);
-
+	// Remove all event listeners
 	if (listeners) {
 		removeEventListeners(listeners, el);
-		delete vdom.listeners;
+		vdom.listeners = null;
+	}
+
+	// Destroy all children recursively
+	if (children) {
+		children.forEach(destroyDOM);
+		vdom.children = null;
+	}
+
+	// Remove element from DOM
+	el.remove();
+	vdom.el = null;
+}
+
+/**
+ * Removes the fragment nodes vdom recursively.
+ *
+ * @param {object} vdom vdom fragment node
+ */
+function removeFragmentNodes(vdom) {
+	const { children } = vdom;
+
+	if (children) {
+		// Destroy all children recursively
+		children.forEach(destroyDOM);
+		vdom.children = null;
 	}
 }
 
-function removeFragmentNodes(vdom) {
-	const { el, children } = vdom;
-
-	assert(el instanceof HTMLElement);
-
-	children.forEach(destroyDOM);
+/**
+ * Unmounts a component node and cleans up references.
+ * 
+ * @param {object} vdom the component vdom node to remove
+ */
+function removeComponentNode(vdom) {
+	const { instance } = vdom;
+	
+	// Call the component's unmount method
+	if (instance && typeof instance.unmount === 'function') {
+		instance.unmount();
+	}
+	
+	// Clean up references
+	vdom.instance = null;
+	vdom.el = null;
 }

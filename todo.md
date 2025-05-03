@@ -8,12 +8,12 @@
 - [x] **Event Handling** - Basic system for attaching and managing event listeners
 - [x] **Component Rendering** - Basic component rendering system with props
 - [x] **Fragment Support** - Ability to render multiple elements without a wrapper
+- [x] **Stateful Components** - Components with their own internal state and lifecycle
+- [x] **Component Methods** - Adding custom functions to components for more control
 
 ## 🚧 Coming Soon
 
 ### Components and Composition
-- [ ] **Stateful Components** - Components with their own internal state and lifecycle
-- [ ] **Component Methods** - Adding custom functions to components for more control
 - [ ] **Sub-components** - Composing components within components (nesting)
 - [ ] **Slots** - Content projection for more flexible and reusable components
 
@@ -37,7 +37,7 @@
 
 ## 📋 Development Tasks
 
-- [ ] Implement a basic component class with state management
+- [x] Implement a basic component class with state management
 - [ ] Create a more efficient reconciliation algorithm for DOM updates
 - [ ] Design and implement a hooks system
 - [ ] Set up TypeScript configuration and type definitions

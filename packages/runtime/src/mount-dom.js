@@ -1,6 +1,7 @@
 // TODOCS
 
 import { setAttributes } from "./attributes";
+import { COMPONENT_TYPE, processComponent } from "./component-factory";
 import { addEventListeners } from "./events";
 import { DOM_TYPES } from "./h";
 
@@ -25,6 +26,11 @@ export function mountDOM(vdom, parentEl, index) {
 
 		case DOM_TYPES.FRAGMENT: {
 			createFragmentNodes(vdom, parentEl, index);
+			break;
+		}
+
+		case COMPONENT_TYPE: {
+			processComponent(vdom, parentEl, index);
 			break;
 		}
 

@@ -1,21 +1,3 @@
-function addEventListeners(listeners = {}, el) {
-	const addedListeners = {};
-	Object.entries(listeners).forEach(([eventName, handler]) => {
-		const listener = addEventListener(eventName, handler, el);
-		addedListeners[eventName] = listener;
-	});
-	return addedListeners;
-}
-function addEventListener(eventName, handler, el) {
-	el.addEventListener(eventName, handler);
-	return handler;
-}
-function removeEventListeners(listeners = {}, el) {
-	Object.entries(listeners).forEach(([eventName, handler]) => {
-		el.removeEventListener(eventName, handler);
-	});
-}
-
 function withoutNulls(arr) {
 	return arr.filter((item) => item != null);
 }
@@ -55,10 +37,82 @@ function mapTextNodes(children) {
 	);
 }
 
+const COMPONENT_TYPE = "component";
+function createComponent(ComponentClass, props = {}, children = []) {
+  return {
+    type: COMPONENT_TYPE,
+    ComponentClass,
+    props: { ...props, children },
+    instance: null
+  };
+}
+function processComponent(vdom, parentEl, index) {
+  const { ComponentClass, props } = vdom;
+  const instance = typeof ComponentClass === 'function' && !ComponentClass.prototype.render
+    ? new FunctionalComponentWrapper(ComponentClass, props)
+    : new ComponentClass(props);
+  vdom.instance = instance;
+  instance.mount(parentEl);
+  return instance;
+}
+class FunctionalComponentWrapper {
+  constructor(renderFn, props = {}) {
+    this.renderFn = renderFn;
+    this.props = props;
+    this.vdom = null;
+    this.parentEl = null;
+  }
+  mount(parentEl) {
+    this.parentEl = parentEl;
+    this.vdom = this.renderFn(this.props);
+    return this;
+  }
+  unmount() {
+  }
+  updateProps(newProps) {
+    this.props = { ...this.props, ...newProps };
+    this.vdom = this.renderFn(this.props);
+    return this.vdom;
+  }
+}
+
+function addEventListeners(listeners = {}, el) {
+	const addedListeners = {};
+	Object.entries(listeners).forEach(([eventName, handler]) => {
+		const listener = addEventListener(eventName, handler, el);
+		addedListeners[eventName] = listener;
+	});
+	return addedListeners;
+}
+function addEventListener(eventName, handler, el) {
+	el.addEventListener(eventName, handler);
+	return handler;
+}
+function removeEventListeners(listeners = {}, el) {
+	Object.entries(listeners).forEach(([eventName, handler]) => {
+		el.removeEventListener(eventName, handler);
+	});
+}
+function updateEventListeners(el, oldVdom, newVdom) {
+	const oldListeners = oldVdom.listeners || {};
+	const oldProps = oldVdom.props || {};
+	const newProps = newVdom.props || {};
+	if (!oldProps.on && !newProps.on) {
+		return;
+	}
+	if (oldProps.on) {
+		removeEventListeners(oldListeners, el);
+	}
+	if (newProps.on) {
+		newVdom.listeners = addEventListeners(newProps.on, el);
+	} else {
+		newVdom.listeners = {};
+	}
+}
+
 function destroyDOM(vdom) {
-	const { type, el } = vdom;
-	assert(!!el, "Can only destroy DOM nodes that have been mounted");
-	switch (type) {
+	if (!vdom) return;
+	switch (vdom.type) {
 		case DOM_TYPES.TEXT: {
 			removeTextNode(vdom);
 			break;
@@ -71,31 +125,47 @@ function destroyDOM(vdom) {
 			removeFragmentNodes(vdom);
 			break;
 		}
+		case COMPONENT_TYPE: {
+			removeComponentNode(vdom);
+			break;
+		}
 		default: {
-			throw new Error(`Can't destroy DOM of type: ${type}`);
+			throw new Error(`Cannot destroy DOM of type: ${vdom.type}`);
 		}
 	}
-	delete vdom.el;
 }
 function removeTextNode(vdom) {
 	const { el } = vdom;
-	assert(el instanceof Text);
 	el.remove();
+	vdom.el = null;
 }
 function removeElementNode(vdom) {
-	const { el, children, listeners } = vdom;
-	assert(el instanceof HTMLElement);
-	el.remove();
-	children.forEach(destroyDOM);
+	const { el, listeners, children } = vdom;
 	if (listeners) {
 		removeEventListeners(listeners, el);
-		delete vdom.listeners;
+		vdom.listeners = null;
 	}
+	if (children) {
+		children.forEach(destroyDOM);
+		vdom.children = null;
+	}
+	el.remove();
+	vdom.el = null;
 }
 function removeFragmentNodes(vdom) {
-	const { el, children } = vdom;
-	assert(el instanceof HTMLElement);
-	children.forEach(destroyDOM);
+	const { children } = vdom;
+	if (children) {
+		children.forEach(destroyDOM);
+		vdom.children = null;
+	}
+}
+function removeComponentNode(vdom) {
+	const { instance } = vdom;
+	if (instance && typeof instance.unmount === 'function') {
+		instance.unmount();
+	}
+	vdom.instance = null;
+	vdom.el = null;
 }
 
 class Dispatcher {
@@ -167,6 +237,9 @@ function removeAttribute(el, name) {
 function setStyle(el, name, value) {
 	el.style[name] = value;
 }
+function removeStyle(el, name) {
+	el.style[name] = null;
+}
 function setClass(el, className) {
 	el.className = "";
 	if (typeof className === "string") {
@@ -176,19 +249,65 @@ function setClass(el, className) {
 		el.classList.add(...className);
 	}
 }
+function updateAttributes(el, oldAttrs = {}, newAttrs = {}) {
+	const { on: oldEvents, ...oldAttributes } = oldAttrs;
+	const { on: newEvents, ...newAttributes } = newAttrs;
+	for (const name in oldAttributes) {
+		if (name === 'key') continue;
+		if (!(name in newAttributes)) {
+			if (name === 'class') {
+				el.className = '';
+			} else if (name === 'style') {
+				for (const styleName in oldAttributes.style) {
+					removeStyle(el, styleName);
+				}
+			} else {
+				removeAttribute(el, name);
+			}
+		}
+	}
+	for (const name in newAttributes) {
+		if (name === 'key') continue;
+		const oldValue = oldAttributes[name];
+		const newValue = newAttributes[name];
+		if (oldValue !== newValue) {
+			if (name === 'class') {
+				setClass(el, newValue);
+			} else if (name === 'style') {
+				const oldStyles = oldAttributes.style || {};
+				for (const styleName in oldStyles) {
+					if (!(styleName in newValue)) {
+						removeStyle(el, styleName);
+					}
+				}
+				for (const styleName in newValue) {
+					if (oldStyles[styleName] !== newValue[styleName]) {
+						setStyle(el, styleName, newValue[styleName]);
+					}
+				}
+			} else {
+				setAttribute(el, name, newValue);
+			}
+		}
+	}
+}
 
-function mountDOM(vdom, parentEl) {
+function mountDOM(vdom, parentEl, index) {
 	switch (vdom.type) {
 		case DOM_TYPES.TEXT: {
-			createTextNode(vdom, parentEl);
+			createTextNode(vdom, parentEl, index);
 			break;
 		}
 		case DOM_TYPES.ELEMENT: {
-			createElementNode(vdom, parentEl);
+			createElementNode(vdom, parentEl, index);
 			break;
 		}
 		case DOM_TYPES.FRAGMENT: {
-			createFragmentNodes(vdom, parentEl);
+			createFragmentNodes(vdom, parentEl, index);
+			break;
+		}
+		case COMPONENT_TYPE: {
+			processComponent(vdom, parentEl);
 			break;
 		}
 		default: {
@@ -196,29 +315,143 @@ function mountDOM(vdom, parentEl) {
 		}
 	}
 }
-function createTextNode(vdom, parentEl) {
+function createTextNode(vdom, parentEl, index) {
 	const { value } = vdom;
 	const textNode = document.createTextNode(value);
 	vdom.el = textNode;
-	parentEl.append(textNode);
+	insert(textNode, parentEl, index);
 }
-function createElementNode(vdom, parentEl) {
+function createElementNode(vdom, parentEl, index) {
 	const { tag, props, children } = vdom;
 	const element = document.createElement(tag);
 	addProps(element, props, vdom);
 	vdom.el = element;
 	children.forEach((child) => mountDOM(child, element));
-	parentEl.append(element);
+	insert(element, parentEl, index);
 }
 function addProps(el, props, vdom) {
 	const { on: events, ...attrs } = props;
 	vdom.listeners = addEventListeners(events, el);
 	setAttributes(el, attrs);
 }
-function createFragmentNodes(vdom, parentEl) {
+function createFragmentNodes(vdom, parentEl, index) {
 	const { children } = vdom;
 	vdom.el = parentEl;
-	children.forEach((child) => mountDOM(child, parentEl));
+	children.forEach((child, i) =>
+		mountDOM(child, parentEl, index ? index + i : null)
+	);
+}
+function insert(el, parentEl, index) {
+	if (index == null) {
+		parentEl.append(el);
+		return;
+	}
+	if (index < 0) {
+		throw new Error(
+			`Index must be a positive number integer, got ${index}`
+		);
+	}
+	const children = parentEl.childNodes;
+	if (index >= children.length) {
+		parentEl.append(el);
+	} else {
+		parentEl.insertBefore(el, children[index]);
+	}
+}
+
+function patchDOM(oldVdom, newVdom, parentEl, index) {
+  if (!oldVdom) {
+    mountDOM(newVdom, parentEl, index);
+    return newVdom;
+  }
+  if (!newVdom) {
+    destroyDOM(oldVdom);
+    return null;
+  }
+  if (oldVdom.type !== newVdom.type) {
+    if (oldVdom.type === COMPONENT_TYPE && newVdom.type === COMPONENT_TYPE) {
+      if (oldVdom.ComponentClass !== newVdom.ComponentClass) {
+        replaceNode(oldVdom, newVdom, parentEl, index);
+        return newVdom;
+      }
+    } else {
+      replaceNode(oldVdom, newVdom, parentEl, index);
+      return newVdom;
+    }
+  }
+  switch (newVdom.type) {
+    case DOM_TYPES.TEXT: {
+      return patchText(oldVdom, newVdom);
+    }
+    case DOM_TYPES.ELEMENT: {
+      return patchElement(oldVdom, newVdom);
+    }
+    case DOM_TYPES.FRAGMENT: {
+      return patchChildren(oldVdom, newVdom);
+    }
+    case COMPONENT_TYPE: {
+      return patchComponent(oldVdom, newVdom);
+    }
+    default: {
+      throw new Error(`Can't patch DOM of type: ${newVdom.type}`);
+    }
+  }
+}
+function patchText(oldVdom, newVdom) {
+  const el = oldVdom.el;
+  newVdom.el = el;
+  if (oldVdom.value !== newVdom.value) {
+    el.nodeValue = newVdom.value;
+  }
+  return newVdom;
+}
+function patchElement(oldVdom, newVdom) {
+  if (oldVdom.tag !== newVdom.tag) {
+    replaceNode(oldVdom, newVdom, oldVdom.el.parentElement);
+    return newVdom;
+  }
+  const el = oldVdom.el;
+  newVdom.el = el;
+  updateAttributes(el, oldVdom.props, newVdom.props);
+  updateEventListeners(el, oldVdom, newVdom);
+  patchChildren(oldVdom, newVdom);
+  return newVdom;
+}
+function patchComponent(oldVdom, newVdom) {
+  const { instance } = oldVdom;
+  newVdom.instance = instance;
+  newVdom.el = oldVdom.el;
+  instance.updateProps(newVdom.props);
+  return newVdom;
+}
+function patchChildren(oldVdom, newVdom) {
+  const oldChildren = oldVdom.children || [];
+  const newChildren = newVdom.children || [];
+  const parentEl = oldVdom.el;
+  newVdom.el = parentEl;
+  const maxLength = Math.max(oldChildren.length, newChildren.length);
+  for (let i = 0; i < maxLength; i++) {
+    const oldChild = oldChildren[i];
+    const newChild = newChildren[i];
+    patchDOM(oldChild, newChild, parentEl, i);
+  }
+  return newVdom;
+}
+function replaceNode(oldVdom, newVdom, parentEl, index) {
+  destroyDOM(oldVdom);
+  mountDOM(newVdom, parentEl, getElementIndex(oldVdom, index));
+  return newVdom;
+}
+function getElementIndex(vdom, fallbackIndex) {
+  if (!vdom || !vdom.el) {
+    return fallbackIndex || 0;
+  }
+  const el = vdom.el;
+  const parentEl = el.parentElement;
+  if (!parentEl) {
+    return fallbackIndex || 0;
+  }
+  return Array.from(parentEl.childNodes).indexOf(el);
 }
 
 function createApp({ state, view, reducers = {} }) {
@@ -237,16 +470,14 @@ function createApp({ state, view, reducers = {} }) {
 		subscriptions.push(subs);
 	}
 	function renderApp() {
-		if (vdom) {
-			destroyDOM(vdom);
-		}
-		vdom = view(state, emit);
-		mountDOM(vdom, parentEl);
+		const newVdom = view(state, emit);
+		vdom = patchDOM(vdom, newVdom, parentEl);
 	}
 	return {
 		mount(_parentEl) {
 			parentEl = _parentEl;
-			renderApp();
+			vdom = view(state, emit);
+			mountDOM(vdom, parentEl);
 			return this;
 		},
 		unmount() {
@@ -260,4 +491,75 @@ function createApp({ state, view, reducers = {} }) {
 	};
 }
 
-export { DOM_TYPES, createApp, h, hFragment, hString };
+class Component {
+  constructor(props = {}, { initialState = {} } = {}) {
+    this.props = props;
+    this.state = initialState;
+    this.vdom = null;
+    this.parentEl = null;
+    this.isMounted = false;
+    this._dispatcher = new Dispatcher();
+    this._subscriptions = [this._dispatcher.afterEveryCommand(this._renderComponent.bind(this))];
+    this.setState = this.setState.bind(this);
+    this.emit = this.emit.bind(this);
+    this.render = this.render.bind(this);
+  }
+  setState(stateChange) {
+    const newState = typeof stateChange === 'function'
+      ? stateChange(this.state)
+      : stateChange;
+    this.state = { ...this.state, ...newState };
+    this._dispatcher.dispatch('state-updated', this.state);
+  }
+  emit(eventName, payload) {
+    this._dispatcher.dispatch(eventName, payload);
+  }
+  mount(parentEl) {
+    this.parentEl = parentEl;
+    if (this.beforeMount) {
+      this.beforeMount();
+    }
+    this.vdom = this.render(this.props, this.state, this.emit);
+    mountDOM(this.vdom, parentEl);
+    this.isMounted = true;
+    if (this.mounted) {
+      this.mounted();
+    }
+    return this;
+  }
+  unmount() {
+    if (this.beforeUnmount) {
+      this.beforeUnmount();
+    }
+    if (this.vdom) {
+      destroyDOM(this.vdom);
+      this.vdom = null;
+    }
+    this._subscriptions.forEach(unsubscribe => unsubscribe());
+    this.isMounted = false;
+    if (this.unmounted) {
+      this.unmounted();
+    }
+  }
+  updateProps(newProps) {
+    const oldProps = this.props;
+    this.props = { ...this.props, ...newProps };
+    if (this.beforeUpdate) {
+      this.beforeUpdate(oldProps, this.props);
+    }
+    this._renderComponent();
+    if (this.updated) {
+      this.updated(oldProps, this.props);
+    }
+  }
+  _renderComponent() {
+    if (!this.isMounted) return;
+    const newVdom = this.render(this.props, this.state, this.emit);
+    this.vdom = patchDOM(this.vdom, newVdom, this.parentEl);
+  }
+  render(props, state, emit) {
+    throw new Error('Components must implement render method');
+  }
+}
+
+export { Component, DOM_TYPES, createApp, createComponent, h, hFragment, hString };
