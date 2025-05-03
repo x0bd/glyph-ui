@@ -13,11 +13,16 @@ class TodoApp extends Component {
 			initialState: {
 				currentTodo: "",
 				edit: {
-					idx: null,
+					id: null,
 					original: null,
 					edited: null,
 				},
-				todos: ["watch OOP vs FP video", "feed the cat", "publish framework"],
+				nextId: 3, // Starting ID for new todos
+				todos: [
+					{ id: 0, text: "watch OOP vs FP video" },
+					{ id: 1, text: "feed the cat" },
+					{ id: 2, text: "publish framework" }
+				],
 			}
 		});
 	}
@@ -27,18 +32,26 @@ class TodoApp extends Component {
 	}
 
 	addTodo() {
+		const newTodo = {
+			id: this.state.nextId,
+			text: this.state.currentTodo
+		};
+
 		this.setState({
 			currentTodo: "",
-			todos: [...this.state.todos, this.state.currentTodo],
+			nextId: this.state.nextId + 1,
+			todos: [...this.state.todos, newTodo],
 		});
 	}
 
-	startEditingTodo(idx) {
+	startEditingTodo(id) {
+		const todo = this.state.todos.find(todo => todo.id === id);
+		
 		this.setState({
 			edit: {
-				idx,
-				original: this.state.todos[idx],
-				edited: this.state.todos[idx],
+				id,
+				original: todo.text,
+				edited: todo.text,
 			},
 		});
 	}
@@ -50,24 +63,28 @@ class TodoApp extends Component {
 	}
 
 	saveEditedTodo() {
-		const todos = [...this.state.todos];
-		todos[this.state.edit.idx] = this.state.edit.edited;
+		const todos = this.state.todos.map(todo => {
+			if (todo.id === this.state.edit.id) {
+				return { ...todo, text: this.state.edit.edited };
+			}
+			return todo;
+		});
 
 		this.setState({
-			edit: { idx: null, original: null, edited: null },
+			edit: { id: null, original: null, edited: null },
 			todos,
 		});
 	}
 
 	cancelEditingTodo() {
 		this.setState({
-			edit: { idx: null, original: null, edited: null },
+			edit: { id: null, original: null, edited: null },
 		});
 	}
 
-	removeTodo(idx) {
+	removeTodo(id) {
 		this.setState({
-			todos: this.state.todos.filter((_, i) => i !== idx),
+			todos: this.state.todos.filter(todo => todo.id !== id),
 		});
 	}
 
@@ -111,15 +128,15 @@ class TodoApp extends Component {
 		return h(
 			"div",
 			{ class: "todo-list" },
-			todos.map((todo, i) => this.renderTodoItem(todo, i, edit))
+			todos.map(todo => this.renderTodoItem(todo, edit))
 		);
 	}
 
-	renderTodoItem(todo, i, edit) {
-		const isEditing = edit.idx === i;
+	renderTodoItem(todo, edit) {
+		const isEditing = edit.id === todo.id;
 
 		return isEditing
-			? h("div", { class: "todo-item" }, [
+			? h("div", { key: todo.id, class: "todo-item" }, [
 					h("input", {
 						value: edit.edited,
 						on: {
@@ -135,14 +152,14 @@ class TodoApp extends Component {
 						["Cancel"]
 					),
 				])
-			: h("div", { class: "todo-item" }, [
+			: h("div", { key: todo.id, class: "todo-item" }, [
 					hString("•"),
 					h(
 						"span",
-						{ on: { dblclick: () => this.startEditingTodo(i) } },
-						[todo]
+						{ on: { dblclick: () => this.startEditingTodo(todo.id) } },
+						[todo.text]
 					),
-					h("button", { on: { click: () => this.removeTodo(i) } }, [
+					h("button", { on: { click: () => this.removeTodo(todo.id) } }, [
 						"Done",
 					]),
 				]);

@@ -4,6 +4,7 @@ import { destroyDOM } from "./destroy-dom.js";
 import { updateEventListeners } from "./events.js";
 import { DOM_TYPES } from "./h.js";
 import { mountDOM } from "./mount-dom.js";
+import { isShallowEqual } from "./utils/object-utils.js";
 
 /**
  * Updates the DOM to match the new virtual DOM tree.
@@ -28,6 +29,11 @@ export function patchDOM(oldVdom, newVdom, parentEl, index) {
     return null;
   }
   
+  // Fast path for identical references - nothing to change
+  if (oldVdom === newVdom) {
+    return newVdom;
+  }
+  
   // If the node types are different, replace the old node
   if (oldVdom.type !== newVdom.type) {
     // Special handling for components
@@ -42,7 +48,37 @@ export function patchDOM(oldVdom, newVdom, parentEl, index) {
     }
   }
   
-  // If we made it here, we have the same type of node
+  // For text nodes, do a simple value check
+  if (newVdom.type === DOM_TYPES.TEXT && oldVdom.value === newVdom.value) {
+    newVdom.el = oldVdom.el;
+    return newVdom;
+  }
+  
+  // For element nodes, check if the tag is the same
+  if (newVdom.type === DOM_TYPES.ELEMENT && oldVdom.tag !== newVdom.tag) {
+    replaceNode(oldVdom, newVdom, parentEl, index);
+    return newVdom;
+  }
+  
+  // For elements and components with the same type, check if props are unchanged
+  if ((newVdom.type === DOM_TYPES.ELEMENT || newVdom.type === COMPONENT_TYPE) &&
+       oldVdom.props && newVdom.props && isShallowEqual(oldVdom.props, newVdom.props)) {
+    // Props are the same, just transfer all children
+    if (Array.isArray(oldVdom.children) && Array.isArray(newVdom.children) && 
+        oldVdom.children.length === 0 && newVdom.children.length === 0) {
+      // No children to update, just reuse the old element
+      newVdom.el = oldVdom.el;
+      
+      // For components, we need to transfer the instance as well
+      if (newVdom.type === COMPONENT_TYPE) {
+        newVdom.instance = oldVdom.instance;
+      }
+      
+      return newVdom;
+    }
+  }
+  
+  // If we made it here, we have the same type of node but some changes
   // Handle different node types
   switch (newVdom.type) {
     case DOM_TYPES.TEXT: {
@@ -96,9 +132,11 @@ function patchElement(oldVdom, newVdom) {
   const el = oldVdom.el;
   newVdom.el = el;
   
-  // Update props (attributes and event listeners)
-  updateAttributes(el, oldVdom.props, newVdom.props);
-  updateEventListeners(el, oldVdom, newVdom);
+  // Only update attributes and event listeners if props actually changed
+  if (!isShallowEqual(oldVdom.props, newVdom.props)) {
+    updateAttributes(el, oldVdom.props, newVdom.props);
+    updateEventListeners(el, oldVdom, newVdom);
+  }
   
   // Update children
   patchChildren(oldVdom, newVdom);
@@ -116,14 +154,24 @@ function patchComponent(oldVdom, newVdom) {
   newVdom.instance = instance;
   newVdom.el = oldVdom.el;
   
-  // Update the props on the component instance
-  instance.updateProps(newVdom.props);
+  // Only update props if they've actually changed
+  if (!isShallowEqual(oldVdom.props, newVdom.props)) {
+    instance.updateProps(newVdom.props);
+  }
   
   return newVdom;
 }
 
 /**
- * Patches the children of a node (element or fragment)
+ * Extracts the key from a virtual DOM node's props.
+ * Returns undefined if no key is found.
+ */
+function getNodeKey(vdom) {
+  return vdom && vdom.props ? vdom.props.key : undefined;
+}
+
+/**
+ * Patches the children of a node (element or fragment) with optimized key-based reconciliation
  */
 function patchChildren(oldVdom, newVdom) {
   const oldChildren = oldVdom.children || [];
@@ -133,8 +181,49 @@ function patchChildren(oldVdom, newVdom) {
   // Set reference to parent element
   newVdom.el = parentEl;
   
-  // Simple implementation: patch children one by one based on index
-  // A more optimized version would use key-based reconciliation
+  // Shortcut for common cases
+  
+  // 1. No children in either old or new vdom
+  if (oldChildren.length === 0 && newChildren.length === 0) {
+    return newVdom;
+  }
+  
+  // 2. No old children, just mount all new ones
+  if (oldChildren.length === 0) {
+    // Just mount all children
+    newChildren.forEach((child, idx) => {
+      mountDOM(child, parentEl, idx);
+    });
+    return newVdom;
+  }
+  
+  // 3. No new children, remove all old ones
+  if (newChildren.length === 0) {
+    // Just remove all children
+    oldChildren.forEach(child => {
+      destroyDOM(child);
+    });
+    return newVdom;
+  }
+  
+  // Check if we can use keyed reconciliation
+  const hasKeys = newChildren.some(child => getNodeKey(child) !== undefined);
+  
+  if (hasKeys) {
+    // Use optimized keyed reconciliation
+    patchKeyedChildren(oldChildren, newChildren, parentEl);
+  } else {
+    // Fall back to index-based reconciliation
+    patchUnkeyedChildren(oldChildren, newChildren, parentEl);
+  }
+  
+  return newVdom;
+}
+
+/**
+ * Patches children using index-based reconciliation (original algorithm)
+ */
+function patchUnkeyedChildren(oldChildren, newChildren, parentEl) {
   const maxLength = Math.max(oldChildren.length, newChildren.length);
   
   for (let i = 0; i < maxLength; i++) {
@@ -143,8 +232,92 @@ function patchChildren(oldVdom, newVdom) {
     
     patchDOM(oldChild, newChild, parentEl, i);
   }
+}
+
+/**
+ * Patches children using key-based reconciliation for more efficient updates
+ */
+function patchKeyedChildren(oldChildren, newChildren, parentEl) {
+  // Create a map of old keyed children
+  const oldKeyedChildren = {};
+  const oldUnkeyedChildren = [];
   
-  return newVdom;
+  // Separate old keyed and unkeyed children for quick lookup
+  oldChildren.forEach((child, i) => {
+    const key = getNodeKey(child);
+    if (key !== undefined) {
+      oldKeyedChildren[key] = { vdom: child, index: i };
+    } else {
+      oldUnkeyedChildren.push({ vdom: child, index: i });
+    }
+  });
+  
+  // New nodes to mount and their final position
+  const nodesToMount = [];
+  
+  // Keep track of nodes that have been patched
+  const patchedNodes = new Set();
+  
+  // Track the DOM operations for each new child
+  newChildren.forEach((newChild, newIndex) => {
+    const key = getNodeKey(newChild);
+    let oldChildEntry;
+    
+    if (key !== undefined) {
+      // We have a keyed element
+      oldChildEntry = oldKeyedChildren[key];
+      
+      if (oldChildEntry) {
+        // Found a matching key, patch the node
+        patchDOM(oldChildEntry.vdom, newChild, parentEl, newIndex);
+        patchedNodes.add(key);
+        
+        // Move if necessary
+        if (newIndex !== oldChildEntry.index) {
+          // Need to move this node
+          const el = newChild.el;
+          const referenceNode = parentEl.childNodes[newIndex + 1] || null;
+          parentEl.insertBefore(el, referenceNode);
+        }
+      } else {
+        // No matching key found, need to mount a new node
+        nodesToMount.push({ vdom: newChild, index: newIndex });
+      }
+    } else {
+      // Unkeyed element, try to reuse an unkeyed node
+      if (oldUnkeyedChildren.length > 0) {
+        oldChildEntry = oldUnkeyedChildren.shift();
+        patchDOM(oldChildEntry.vdom, newChild, parentEl, newIndex);
+        
+        // Move if necessary
+        if (newIndex !== oldChildEntry.index) {
+          const el = newChild.el;
+          const referenceNode = parentEl.childNodes[newIndex + 1] || null;
+          parentEl.insertBefore(el, referenceNode);
+        }
+      } else {
+        // No more unkeyed nodes to reuse, mount a new one
+        nodesToMount.push({ vdom: newChild, index: newIndex });
+      }
+    }
+  });
+  
+  // Mount new nodes
+  nodesToMount.forEach(({ vdom, index }) => {
+    mountDOM(vdom, parentEl, index);
+  });
+  
+  // Remove any old keyed nodes that weren't reused
+  Object.keys(oldKeyedChildren).forEach(key => {
+    if (!patchedNodes.has(key)) {
+      destroyDOM(oldKeyedChildren[key].vdom);
+    }
+  });
+  
+  // Remove any remaining old unkeyed nodes
+  oldUnkeyedChildren.forEach(({ vdom }) => {
+    destroyDOM(vdom);
+  });
 }
 
 /**

@@ -16,6 +16,7 @@ export const DOM_TYPES = {
  * - `on`: an object containing event listeners to add to the element
  * - `class`: a string or array of strings to add to the element's class list
  * - `style`: an object containing CSS properties to add to the element's style
+ * - `key`: a unique identifier used for efficient list rendering (not rendered as an attribute)
  *
  * The children are added to the element as child nodes.
  * If a child is a string, it is converted to a text node using `hString()`.

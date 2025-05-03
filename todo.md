@@ -15,11 +15,11 @@
 ## 🚧 Coming Soon
 
 ### Components and Composition
-- [ ] **Slots** - Content projection for more flexible and reusable components
+- [x] **Slots** - Content projection for more flexible and reusable components
 
 ### Performance & Rendering
-- [ ] **Keyed Lists** - Efficiently rendering and updating lists with unique identifiers
-- [ ] **Optimized Diffing Algorithm** - Smarter comparison for more efficient DOM updates
+- [x] **Keyed Lists** - Efficiently rendering and updating lists with unique identifiers
+- [x] **Optimized Diffing Algorithm** - Smarter comparison for more efficient DOM updates
 - [ ] **Lazy Loading** - Load components only when needed
 - [ ] **Server-Side Rendering (SSR)** - Rendering components on the server for performance and SEO
 
@@ -38,7 +38,7 @@
 ## 📋 Development Tasks
 
 - [x] Implement a basic component class with state management
-- [ ] Create a more efficient reconciliation algorithm for DOM updates
+- [x] Create a more efficient reconciliation algorithm for DOM updates
 - [ ] Design and implement a hooks system
 - [ ] Set up TypeScript configuration and type definitions
 - [ ] Build an initial version of developer tools

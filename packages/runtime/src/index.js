@@ -7,3 +7,6 @@ export { createComponent } from "./component-factory.js";
 
 // Export slot functionality
 export { createSlot, createSlotContent } from "./slots.js";
+
+// Export utility functions
+export { isShallowEqual, isDeepEqual } from "./utils/object-utils.js";
