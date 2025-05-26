@@ -13,10 +13,15 @@
  * @param {object} attrs attributes to set
  */
 export function setAttributes(el, attrs) {
-	const { class: className, style, ...otherAttrs } = attrs;
+	const { class: className, style, ref, ...otherAttrs } = attrs;
 
 	// Delete the "key" property if it exists
 	delete otherAttrs.key;
+
+	// Handle the ref attribute if provided
+	if (ref && typeof ref === "function") {
+		ref(el);
+	}
 
 	if (className) {
 		setClass(el, className);
@@ -92,25 +97,30 @@ function setClass(el, className) {
  * Updates the attributes of an element by comparing old and new attributes.
  * Removes attributes that are not present in the new attributes,
  * updates attributes that have changed, and adds new attributes.
- * 
+ *
  * @param {HTMLElement} el - The element to update attributes on
  * @param {Object} oldAttrs - The old attributes object
- * @param {Object} newAttrs - The new attributes object 
+ * @param {Object} newAttrs - The new attributes object
  */
 export function updateAttributes(el, oldAttrs = {}, newAttrs = {}) {
-	const { on: oldEvents, ...oldAttributes } = oldAttrs;
-	const { on: newEvents, ...newAttributes } = newAttrs;
-	
+	const { on: oldEvents, ref: oldRef, ...oldAttributes } = oldAttrs;
+	const { on: newEvents, ref: newRef, ...newAttributes } = newAttrs;
+
+	// Handle ref attribute if changed
+	if (newRef && typeof newRef === "function" && newRef !== oldRef) {
+		newRef(el);
+	}
+
 	// Handle removed attributes
 	for (const name in oldAttributes) {
 		// Skip event handlers and special props like 'key'
-		if (name === 'key') continue;
-		
+		if (name === "key") continue;
+
 		// If attribute doesn't exist in new set, remove it
 		if (!(name in newAttributes)) {
-			if (name === 'class') {
-				el.className = '';
-			} else if (name === 'style') {
+			if (name === "class") {
+				el.className = "";
+			} else if (name === "style") {
 				// Remove all styles
 				for (const styleName in oldAttributes.style) {
 					removeStyle(el, styleName);
@@ -120,30 +130,30 @@ export function updateAttributes(el, oldAttrs = {}, newAttrs = {}) {
 			}
 		}
 	}
-	
+
 	// Set new or changed attributes
 	for (const name in newAttributes) {
 		// Skip event handlers and special props
-		if (name === 'key') continue;
-		
+		if (name === "key") continue;
+
 		const oldValue = oldAttributes[name];
 		const newValue = newAttributes[name];
-		
+
 		// Only update if values are different
 		if (oldValue !== newValue) {
-			if (name === 'class') {
+			if (name === "class") {
 				setClass(el, newValue);
-			} else if (name === 'style') {
+			} else if (name === "style") {
 				// Handle style updates
 				const oldStyles = oldAttributes.style || {};
-				
+
 				// Remove styles not in new set
 				for (const styleName in oldStyles) {
 					if (!(styleName in newValue)) {
 						removeStyle(el, styleName);
 					}
 				}
-				
+
 				// Set new styles
 				for (const styleName in newValue) {
 					if (oldStyles[styleName] !== newValue[styleName]) {

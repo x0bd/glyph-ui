@@ -16,3 +16,6 @@ export { lazy, createDelayedComponent } from "./lazy.js";
 
 // Export state management functionality
 export { createStore, connect, createActions } from "./glyph-state.js";
+
+// Export hooks API
+export { useState, useEffect, useRef, useMemo, useCallback } from "./hooks.js";

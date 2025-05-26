@@ -27,7 +27,7 @@
 
 ### Development Experience
 
--   [ ] **Hooks** - React-inspired hooks for state and effects in functional components
+-   [🚧] **Hooks** - React-inspired hooks for state and effects in functional components
 -   [ ] **TypeScript Support** - Type definitions and full TypeScript integration
 -   [ ] **Browser Extension** - Developer tools for inspecting component tree
 -   [ ] **Hot Module Replacement** - Update components without full page reload
@@ -43,7 +43,7 @@
 
 -   [x] Implement a basic component class with state management
 -   [x] Create a more efficient reconciliation algorithm for DOM updates
--   [ ] Design and implement a hooks system
+-   [🚧] Design and implement a hooks system
 -   [ ] Set up TypeScript configuration and type definitions
 -   [ ] Build an initial version of developer tools
 

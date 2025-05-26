@@ -98,183 +98,168 @@ function extractSlotContents(children = []) {
   return slotContents;
 }
 
-const COMPONENT_TYPE = "component";
-function createComponent(ComponentClass, props = {}, children = []) {
-  return {
-    type: COMPONENT_TYPE,
-    ComponentClass,
-    props: { ...props, children },
-    instance: null
-  };
+let currentComponent = null;
+let currentHookIndex = 0;
+const componentHooksStore = new WeakMap();
+function initHooks(componentInstance) {
+	if (!componentHooksStore.has(componentInstance)) {
+		componentHooksStore.set(componentInstance, {
+			hooks: [],
+			cleanupFunctions: [],
+		});
+	}
+	currentHookIndex = 0;
+	currentComponent = componentInstance;
 }
-function processComponent(vdom, parentEl, index) {
-  const { ComponentClass, props } = vdom;
-  const instance = typeof ComponentClass === 'function' && !ComponentClass.prototype.render
-    ? new FunctionalComponentWrapper(ComponentClass, props)
-    : new ComponentClass(props);
-  vdom.instance = instance;
-  instance.mount(parentEl);
-  return instance;
+function finishHooks() {
+	currentComponent = null;
+	currentHookIndex = 0;
 }
-class FunctionalComponentWrapper {
-  constructor(renderFn, props = {}) {
-    this.renderFn = renderFn;
-    this.props = props;
-    this.vdom = null;
-    this.parentEl = null;
-    this.slotContents = {};
-    if (props.children && Array.isArray(props.children)) {
-      this.slotContents = extractSlotContents(props.children);
-    }
-  }
-  mount(parentEl) {
-    this.parentEl = parentEl;
-    const rawVdom = this.renderFn(this.props);
-    this.vdom = resolveSlots(rawVdom, this.slotContents);
-    return this;
-  }
-  unmount() {
-  }
-  updateProps(newProps) {
-    this.props = { ...this.props, ...newProps };
-    if (newProps.children && Array.isArray(newProps.children)) {
-      this.slotContents = extractSlotContents(newProps.children);
-    }
-    const rawVdom = this.renderFn(this.props);
-    this.vdom = resolveSlots(rawVdom, this.slotContents);
-    return this.vdom;
-  }
+function runCleanupFunctions(componentInstance) {
+	const hooksData = componentHooksStore.get(componentInstance);
+	if (hooksData) {
+		hooksData.cleanupFunctions.forEach((cleanup) => {
+			if (typeof cleanup === "function") {
+				try {
+					cleanup();
+				} catch (error) {
+					console.error("Error in useEffect cleanup:", error);
+				}
+			}
+		});
+		hooksData.cleanupFunctions = [];
+	}
 }
-
-function addEventListeners(listeners = {}, el) {
-	const addedListeners = {};
-	Object.entries(listeners).forEach(([eventName, handler]) => {
-		const listener = addEventListener(eventName, handler, el);
-		addedListeners[eventName] = listener;
-	});
-	return addedListeners;
+function checkHooksContext() {
+	if (!currentComponent) {
+		throw new Error(
+			"Hooks can only be called inside a component's render function or inside another hook. " +
+				"Don't call hooks outside of components or in class components."
+		);
+	}
 }
-function addEventListener(eventName, handler, el) {
-	el.addEventListener(eventName, handler);
-	return handler;
+function useState(initialState) {
+	checkHooksContext();
+	const hooksData = componentHooksStore.get(currentComponent);
+	const hookIndex = currentHookIndex++;
+	if (hookIndex >= hooksData.hooks.length) {
+		const initialValue =
+			typeof initialState === "function" ? initialState() : initialState;
+		hooksData.hooks[hookIndex] = {
+			type: "state",
+			value: initialValue,
+		};
+	}
+	const hook = hooksData.hooks[hookIndex];
+	const setState = (newState) => {
+		const nextState =
+			typeof newState === "function" ? newState(hook.value) : newState;
+		if (hook.value !== nextState) {
+			hook.value = nextState;
+			if (currentComponent._renderComponent) {
+				currentComponent._renderComponent();
+			}
+		}
+	};
+	return [hook.value, setState];
 }
-function removeEventListeners(listeners = {}, el) {
-	Object.entries(listeners).forEach(([eventName, handler]) => {
-		el.removeEventListener(eventName, handler);
-	});
-}
-function updateEventListeners(el, oldVdom, newVdom) {
-	const oldListeners = oldVdom.listeners || {};
-	const oldProps = oldVdom.props || {};
-	const newProps = newVdom.props || {};
-	if (!oldProps.on && !newProps.on) {
+function useEffect(effect, deps) {
+	checkHooksContext();
+	const hooksData = componentHooksStore.get(currentComponent);
+	const hookIndex = currentHookIndex++;
+	if (hookIndex >= hooksData.hooks.length) {
+		hooksData.hooks[hookIndex] = {
+			type: "effect",
+			deps: deps || null,
+			cleanup: null,
+		};
+		setTimeout(() => {
+			if (currentComponent.isMounted !== false) {
+				const cleanup = effect();
+				if (cleanup && typeof cleanup === "function") {
+					hooksData.cleanupFunctions[hookIndex] = cleanup;
+				}
+			}
+		}, 0);
 		return;
 	}
-	if (oldProps.on) {
-		removeEventListeners(oldListeners, el);
+	const hook = hooksData.hooks[hookIndex];
+	const oldDeps = hook.deps;
+	hook.deps = deps || null;
+	if (deps && oldDeps) {
+		const depsChanged =
+			deps.length !== oldDeps.length ||
+			deps.some((dep, i) => dep !== oldDeps[i]);
+		if (!depsChanged) {
+			return;
+		}
 	}
-	if (newProps.on) {
-		newVdom.listeners = addEventListeners(newProps.on, el);
-	} else {
-		newVdom.listeners = {};
+	if (hooksData.cleanupFunctions[hookIndex]) {
+		try {
+			hooksData.cleanupFunctions[hookIndex]();
+		} catch (error) {
+			console.error("Error in useEffect cleanup:", error);
+		}
 	}
+	setTimeout(() => {
+		if (currentComponent.isMounted !== false) {
+			const cleanup = effect();
+			if (cleanup && typeof cleanup === "function") {
+				hooksData.cleanupFunctions[hookIndex] = cleanup;
+			} else {
+				hooksData.cleanupFunctions[hookIndex] = null;
+			}
+		}
+	}, 0);
 }
-
-function destroyDOM(vdom) {
-	if (!vdom) return;
-	switch (vdom.type) {
-		case DOM_TYPES.TEXT: {
-			removeTextNode(vdom);
-			break;
-		}
-		case DOM_TYPES.ELEMENT: {
-			removeElementNode(vdom);
-			break;
-		}
-		case DOM_TYPES.FRAGMENT: {
-			removeFragmentNodes(vdom);
-			break;
-		}
-		case COMPONENT_TYPE: {
-			removeComponentNode(vdom);
-			break;
-		}
-		default: {
-			throw new Error(`Cannot destroy DOM of type: ${vdom.type}`);
-		}
-	}
-}
-function removeTextNode(vdom) {
-	const { el } = vdom;
-	el.remove();
-	vdom.el = null;
-}
-function removeElementNode(vdom) {
-	const { el, listeners, children } = vdom;
-	if (listeners) {
-		removeEventListeners(listeners, el);
-		vdom.listeners = null;
-	}
-	if (children) {
-		children.forEach(destroyDOM);
-		vdom.children = null;
-	}
-	el.remove();
-	vdom.el = null;
-}
-function removeFragmentNodes(vdom) {
-	const { children } = vdom;
-	if (children) {
-		children.forEach(destroyDOM);
-		vdom.children = null;
-	}
-}
-function removeComponentNode(vdom) {
-	const { instance } = vdom;
-	if (instance && typeof instance.unmount === 'function') {
-		instance.unmount();
-	}
-	vdom.instance = null;
-	vdom.el = null;
-}
-
-class Dispatcher {
-	#subs = new Map();
-	#afterHandlers = [];
-	subscribe(commandName, handler) {
-		if (!this.#subs.has(commandName)) {
-			this.#subs.set(commandName, []);
-		}
-		const handlers = this.#subs.get(commandName);
-		if (handlers.includes(handler)) {
-			return () => {};
-		}
-		handlers.push(handler);
-		return () => {
-			const idx = handlers.indexOf(handler);
-			handlers.splice(idx, 1);
+function useRef(initialValue) {
+	checkHooksContext();
+	const hooksData = componentHooksStore.get(currentComponent);
+	const hookIndex = currentHookIndex++;
+	if (hookIndex >= hooksData.hooks.length) {
+		hooksData.hooks[hookIndex] = {
+			type: "ref",
+			value: { current: initialValue },
 		};
 	}
-	afterEveryCommand(handler) {
-		this.#afterHandlers.push(handler);
-		return () => {
-			const idx = this.#afterHandlers.indexOf(handler);
-			this.#afterHandlers.splice(idx, 1);
+	return hooksData.hooks[hookIndex].value;
+}
+function useMemo(factory, deps) {
+	checkHooksContext();
+	const hooksData = componentHooksStore.get(currentComponent);
+	const hookIndex = currentHookIndex++;
+	if (hookIndex >= hooksData.hooks.length) {
+		const value = factory();
+		hooksData.hooks[hookIndex] = {
+			type: "memo",
+			value,
+			deps: deps || null,
 		};
+		return value;
 	}
-	dispatch(commandName, payload) {
-		if (this.#subs.has(commandName)) {
-			this.#subs.get(commandName).forEach((handler) => handler(payload));
-		} else {
-			console.warn(`No handlers for command: ${commandName}`);
-		}
-		this.#afterHandlers.forEach((handler) => handler());
+	const hook = hooksData.hooks[hookIndex];
+	const oldDeps = hook.deps;
+	hook.deps = deps || null;
+	if (
+		!deps ||
+		!oldDeps ||
+		deps.length !== oldDeps.length ||
+		deps.some((dep, i) => dep !== oldDeps[i])
+	) {
+		hook.value = factory();
 	}
+	return hook.value;
+}
+function useCallback(callback, deps) {
+	return useMemo(() => callback, deps);
 }
 
 function setAttributes(el, attrs) {
-	const { class: className, style, ...otherAttrs } = attrs;
+	const { class: className, style, ref, ...otherAttrs } = attrs;
 	delete otherAttrs.key;
+	if (ref && typeof ref === "function") {
+		ref(el);
+	}
 	if (className) {
 		setClass(el, className);
 	}
@@ -320,14 +305,17 @@ function setClass(el, className) {
 	}
 }
 function updateAttributes(el, oldAttrs = {}, newAttrs = {}) {
-	const { on: oldEvents, ...oldAttributes } = oldAttrs;
-	const { on: newEvents, ...newAttributes } = newAttrs;
+	const { on: oldEvents, ref: oldRef, ...oldAttributes } = oldAttrs;
+	const { on: newEvents, ref: newRef, ...newAttributes } = newAttrs;
+	if (newRef && typeof newRef === "function" && newRef !== oldRef) {
+		newRef(el);
+	}
 	for (const name in oldAttributes) {
-		if (name === 'key') continue;
+		if (name === "key") continue;
 		if (!(name in newAttributes)) {
-			if (name === 'class') {
-				el.className = '';
-			} else if (name === 'style') {
+			if (name === "class") {
+				el.className = "";
+			} else if (name === "style") {
 				for (const styleName in oldAttributes.style) {
 					removeStyle(el, styleName);
 				}
@@ -337,13 +325,13 @@ function updateAttributes(el, oldAttrs = {}, newAttrs = {}) {
 		}
 	}
 	for (const name in newAttributes) {
-		if (name === 'key') continue;
+		if (name === "key") continue;
 		const oldValue = oldAttributes[name];
 		const newValue = newAttributes[name];
 		if (oldValue !== newValue) {
-			if (name === 'class') {
+			if (name === "class") {
 				setClass(el, newValue);
-			} else if (name === 'style') {
+			} else if (name === "style") {
 				const oldStyles = oldAttributes.style || {};
 				for (const styleName in oldStyles) {
 					if (!(styleName in newValue)) {
@@ -359,6 +347,40 @@ function updateAttributes(el, oldAttrs = {}, newAttrs = {}) {
 				setAttribute(el, name, newValue);
 			}
 		}
+	}
+}
+
+function addEventListeners(listeners = {}, el) {
+	const addedListeners = {};
+	Object.entries(listeners).forEach(([eventName, handler]) => {
+		const listener = addEventListener(eventName, handler, el);
+		addedListeners[eventName] = listener;
+	});
+	return addedListeners;
+}
+function addEventListener(eventName, handler, el) {
+	el.addEventListener(eventName, handler);
+	return handler;
+}
+function removeEventListeners(listeners = {}, el) {
+	Object.entries(listeners).forEach(([eventName, handler]) => {
+		el.removeEventListener(eventName, handler);
+	});
+}
+function updateEventListeners(el, oldVdom, newVdom) {
+	const oldListeners = oldVdom.listeners || {};
+	const oldProps = oldVdom.props || {};
+	const newProps = newVdom.props || {};
+	if (!oldProps.on && !newProps.on) {
+		return;
+	}
+	if (oldProps.on) {
+		removeEventListeners(oldListeners, el);
+	}
+	if (newProps.on) {
+		newVdom.listeners = addEventListeners(newProps.on, el);
+	} else {
+		newVdom.listeners = {};
 	}
 }
 
@@ -649,6 +671,166 @@ function getElementIndex(vdom, fallbackIndex) {
     return fallbackIndex || 0;
   }
   return Array.from(parentEl.childNodes).indexOf(el);
+}
+
+const COMPONENT_TYPE = "component";
+function createComponent(ComponentClass, props = {}, children = []) {
+	return {
+		type: COMPONENT_TYPE,
+		ComponentClass,
+		props: { ...props, children },
+		instance: null,
+	};
+}
+function processComponent(vdom, parentEl, index) {
+	const { ComponentClass, props } = vdom;
+	const instance =
+		typeof ComponentClass === "function" && !ComponentClass.prototype.render
+			? new FunctionalComponentWrapper(ComponentClass, props)
+			: new ComponentClass(props);
+	vdom.instance = instance;
+	instance.mount(parentEl);
+	return instance;
+}
+class FunctionalComponentWrapper {
+	constructor(renderFn, props = {}) {
+		this.renderFn = renderFn;
+		this.props = props;
+		this.vdom = null;
+		this.parentEl = null;
+		this.slotContents = {};
+		this.isMounted = false;
+		if (props.children && Array.isArray(props.children)) {
+			this.slotContents = extractSlotContents(props.children);
+		}
+		this._renderComponent = this._renderComponent.bind(this);
+	}
+	mount(parentEl) {
+		this.parentEl = parentEl;
+		initHooks(this);
+		const rawVdom = this.renderFn(this.props);
+		finishHooks();
+		this.vdom = resolveSlots(rawVdom, this.slotContents);
+		mountDOM(this.vdom, parentEl);
+		this.isMounted = true;
+		return this;
+	}
+	unmount() {
+		runCleanupFunctions(this);
+		if (this.vdom) {
+			destroyDOM(this.vdom);
+			this.vdom = null;
+		}
+		this.isMounted = false;
+	}
+	updateProps(newProps) {
+		this.props = { ...this.props, ...newProps };
+		if (newProps.children && Array.isArray(newProps.children)) {
+			this.slotContents = extractSlotContents(newProps.children);
+		}
+		return this._renderComponent();
+	}
+	_renderComponent() {
+		if (!this.isMounted) return;
+		initHooks(this);
+		const rawVdom = this.renderFn(this.props);
+		finishHooks();
+		const newVdom = resolveSlots(rawVdom, this.slotContents);
+		this.vdom = patchDOM(this.vdom, newVdom, this.parentEl);
+		return this.vdom;
+	}
+}
+
+function destroyDOM(vdom) {
+	if (!vdom) return;
+	switch (vdom.type) {
+		case DOM_TYPES.TEXT: {
+			removeTextNode(vdom);
+			break;
+		}
+		case DOM_TYPES.ELEMENT: {
+			removeElementNode(vdom);
+			break;
+		}
+		case DOM_TYPES.FRAGMENT: {
+			removeFragmentNodes(vdom);
+			break;
+		}
+		case COMPONENT_TYPE: {
+			removeComponentNode(vdom);
+			break;
+		}
+		default: {
+			throw new Error(`Cannot destroy DOM of type: ${vdom.type}`);
+		}
+	}
+}
+function removeTextNode(vdom) {
+	const { el } = vdom;
+	el.remove();
+	vdom.el = null;
+}
+function removeElementNode(vdom) {
+	const { el, listeners, children } = vdom;
+	if (listeners) {
+		removeEventListeners(listeners, el);
+		vdom.listeners = null;
+	}
+	if (children) {
+		children.forEach(destroyDOM);
+		vdom.children = null;
+	}
+	el.remove();
+	vdom.el = null;
+}
+function removeFragmentNodes(vdom) {
+	const { children } = vdom;
+	if (children) {
+		children.forEach(destroyDOM);
+		vdom.children = null;
+	}
+}
+function removeComponentNode(vdom) {
+	const { instance } = vdom;
+	if (instance && typeof instance.unmount === 'function') {
+		instance.unmount();
+	}
+	vdom.instance = null;
+	vdom.el = null;
+}
+
+class Dispatcher {
+	#subs = new Map();
+	#afterHandlers = [];
+	subscribe(commandName, handler) {
+		if (!this.#subs.has(commandName)) {
+			this.#subs.set(commandName, []);
+		}
+		const handlers = this.#subs.get(commandName);
+		if (handlers.includes(handler)) {
+			return () => {};
+		}
+		handlers.push(handler);
+		return () => {
+			const idx = handlers.indexOf(handler);
+			handlers.splice(idx, 1);
+		};
+	}
+	afterEveryCommand(handler) {
+		this.#afterHandlers.push(handler);
+		return () => {
+			const idx = this.#afterHandlers.indexOf(handler);
+			this.#afterHandlers.splice(idx, 1);
+		};
+	}
+	dispatch(commandName, payload) {
+		if (this.#subs.has(commandName)) {
+			this.#subs.get(commandName).forEach((handler) => handler(payload));
+		} else {
+			console.warn(`No handlers for command: ${commandName}`);
+		}
+		this.#afterHandlers.forEach((handler) => handler());
+	}
 }
 
 function createApp({ state, view, reducers = {} }) {
@@ -949,4 +1131,4 @@ function createActions(store, actions) {
   return boundActions;
 }
 
-export { Component, DOM_TYPES, connect, createActions, createApp, createComponent, createDelayedComponent, createSlot, createSlotContent, createStore, h, hFragment, hString, isDeepEqual, isShallowEqual, lazy };
+export { Component, DOM_TYPES, connect, createActions, createApp, createComponent, createDelayedComponent, createSlot, createSlotContent, createStore, h, hFragment, hString, isDeepEqual, isShallowEqual, lazy, useCallback, useEffect, useMemo, useRef, useState };
