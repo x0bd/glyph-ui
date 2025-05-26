@@ -1,7 +1,8 @@
-import { destroyDOM } from "./destroy-dom";
-import { Dispatcher } from "./dispatcher";
-import { mountDOM } from "./mount-dom";
-import { patchDOM } from "./patch-dom";
+import { destroyDOM } from "./destroy-dom.js";
+import { Dispatcher } from "./dispatcher.js";
+import { mountDOM } from "./mount-dom.js";
+import { patchDOM } from "./patch-dom.js";
+import { COMPONENT_TYPE } from "./component-factory.js";
 
 /**
  * Creates an application with the given top-level view, initial state and reducers.
@@ -11,7 +12,10 @@ import { patchDOM } from "./patch-dom";
  * @param {object} config the configuration object, containing the view, reducers and initial state
  * @returns {object} the app object
  */
-export function createApp({ state, view, reducers = {} }) {
+export function createApp(config = {}) {
+	// Extract configuration or use defaults
+	const { state = {}, view = null, reducers = {} } = config || {};
+
 	let parentEl = null;
 	let vdom = null;
 
@@ -41,24 +45,65 @@ export function createApp({ state, view, reducers = {} }) {
 	 * DOM instead of destroying and mounting the whole view.
 	 */
 	function renderApp() {
-		const newVdom = view(state, emit);
+		if (!view || !parentEl) return;
 
+		const newVdom = view(state, emit);
 		vdom = patchDOM(vdom, newVdom, parentEl);
 	}
 
 	return {
 		/**
-		 * Mounts the application to the given host element.
+		 * Mounts the application to the given host element or mounts a component.
 		 *
-		 * @param {Element} _parentEl the host element to mount the virtual DOM node to
+		 * @param {Element|Object} vdomOrEl - Either a virtual DOM node or the parent element
+		 * @param {Element} [_parentEl] - The parent element when vdomOrEl is a vdom
 		 * @returns {object} the application object
 		 */
-		mount(_parentEl) {
-			parentEl = _parentEl;
-			vdom = view(state, emit);
-			mountDOM(vdom, parentEl);
+		mount(vdomOrEl, _parentEl) {
+			// Case 1: Called with a DOM element only (legacy mode)
+			if (vdomOrEl instanceof HTMLElement && !_parentEl) {
+				parentEl = vdomOrEl;
 
-			return this;
+				if (view) {
+					vdom = view(state, emit);
+					mountDOM(vdom, parentEl);
+				}
+
+				return this;
+			}
+
+			// Case 2: Called with both vdom and parent element
+			if (_parentEl instanceof HTMLElement) {
+				vdom = vdomOrEl;
+				parentEl = _parentEl;
+
+				try {
+					mountDOM(vdom, parentEl);
+				} catch (error) {
+					console.error("Error mounting component:", error);
+
+					// Create a fallback error display
+					parentEl.innerHTML = `
+						<div style="color: red; border: 1px solid red; padding: 10px;">
+							<h3>Error Mounting Component</h3>
+							<p>${error.message}</p>
+						</div>
+					`;
+
+					throw error;
+				}
+
+				return this;
+			}
+
+			// Invalid arguments
+			console.error("Invalid arguments to mount():", {
+				vdomOrEl,
+				_parentEl,
+			});
+			throw new Error(
+				"Invalid arguments to mount(): Expected a parent element"
+			);
 		},
 
 		/**
@@ -66,8 +111,11 @@ export function createApp({ state, view, reducers = {} }) {
 		 * DOM and unsubscribing all subscriptions.
 		 */
 		unmount() {
-			destroyDOM(vdom);
-			vdom = null;
+			if (vdom) {
+				destroyDOM(vdom);
+				vdom = null;
+			}
+
 			subscriptions.forEach((unsubscribe) => unsubscribe());
 		},
 

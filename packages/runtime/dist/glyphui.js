@@ -100,8 +100,15 @@ function extractSlotContents(children = []) {
 
 let currentComponent = null;
 let currentHookIndex = 0;
+let isHooksProcessing = false;
 const componentHooksStore = new WeakMap();
 function initHooks(componentInstance) {
+	if (!componentInstance) {
+		console.error(
+			"Cannot initialize hooks: No component instance provided"
+		);
+		return;
+	}
 	if (!componentHooksStore.has(componentInstance)) {
 		componentHooksStore.set(componentInstance, {
 			hooks: [],
@@ -110,20 +117,27 @@ function initHooks(componentInstance) {
 	}
 	currentHookIndex = 0;
 	currentComponent = componentInstance;
+	isHooksProcessing = true;
 }
 function finishHooks() {
-	currentComponent = null;
-	currentHookIndex = 0;
+	isHooksProcessing = false;
 }
 function runCleanupFunctions(componentInstance) {
+	if (!componentInstance) {
+		console.error("Cannot run cleanup: No component instance provided");
+		return;
+	}
 	const hooksData = componentHooksStore.get(componentInstance);
 	if (hooksData) {
-		hooksData.cleanupFunctions.forEach((cleanup) => {
+		hooksData.cleanupFunctions.forEach((cleanup, index) => {
 			if (typeof cleanup === "function") {
 				try {
 					cleanup();
 				} catch (error) {
-					console.error("Error in useEffect cleanup:", error);
+					console.error(
+						`Error in useEffect cleanup for hook ${index}:`,
+						error
+					);
 				}
 			}
 		});
@@ -131,16 +145,22 @@ function runCleanupFunctions(componentInstance) {
 	}
 }
 function checkHooksContext() {
-	if (!currentComponent) {
+	if (!isHooksProcessing || !currentComponent) {
 		throw new Error(
 			"Hooks can only be called inside a component's render function or inside another hook. " +
 				"Don't call hooks outside of components or in class components."
 		);
 	}
+	return currentComponent;
 }
 function useState(initialState) {
-	checkHooksContext();
-	const hooksData = componentHooksStore.get(currentComponent);
+	const component = checkHooksContext();
+	const hooksData = componentHooksStore.get(component);
+	if (!hooksData) {
+		throw new Error(
+			"Component hooks data not found. This is likely a bug in GlyphUI."
+		);
+	}
 	const hookIndex = currentHookIndex++;
 	if (hookIndex >= hooksData.hooks.length) {
 		const initialValue =
@@ -152,20 +172,42 @@ function useState(initialState) {
 	}
 	const hook = hooksData.hooks[hookIndex];
 	const setState = (newState) => {
+		if (!component || component.isMounted === false) {
+			console.warn(
+				"Cannot update state: Component is not mounted or instance is lost"
+			);
+			return;
+		}
 		const nextState =
 			typeof newState === "function" ? newState(hook.value) : newState;
 		if (hook.value !== nextState) {
 			hook.value = nextState;
-			if (currentComponent._renderComponent) {
-				currentComponent._renderComponent();
+			if (component._renderComponent) {
+				try {
+					component._renderComponent();
+				} catch (error) {
+					console.error(
+						"Error re-rendering component after state update:",
+						error
+					);
+				}
 			}
 		}
 	};
 	return [hook.value, setState];
 }
 function useEffect(effect, deps) {
-	checkHooksContext();
-	const hooksData = componentHooksStore.get(currentComponent);
+	const component = checkHooksContext();
+	if (typeof effect !== "function") {
+		console.error("useEffect requires a function as its first argument");
+		return;
+	}
+	const hooksData = componentHooksStore.get(component);
+	if (!hooksData) {
+		throw new Error(
+			"Component hooks data not found. This is likely a bug in GlyphUI."
+		);
+	}
 	const hookIndex = currentHookIndex++;
 	if (hookIndex >= hooksData.hooks.length) {
 		hooksData.hooks[hookIndex] = {
@@ -174,10 +216,22 @@ function useEffect(effect, deps) {
 			cleanup: null,
 		};
 		setTimeout(() => {
-			if (currentComponent.isMounted !== false) {
-				const cleanup = effect();
-				if (cleanup && typeof cleanup === "function") {
-					hooksData.cleanupFunctions[hookIndex] = cleanup;
+			if (component.isMounted !== false) {
+				try {
+					const cleanup = effect();
+					if (cleanup && typeof cleanup === "function") {
+						const currentHooksData =
+							componentHooksStore.get(component);
+						if (currentHooksData) {
+							currentHooksData.cleanupFunctions[hookIndex] =
+								cleanup;
+						}
+					}
+				} catch (error) {
+					console.error(
+						`Error running effect for hook ${hookIndex}:`,
+						error
+					);
 				}
 			}
 		}, 0);
@@ -194,27 +248,47 @@ function useEffect(effect, deps) {
 			return;
 		}
 	}
-	if (hooksData.cleanupFunctions[hookIndex]) {
+	const cleanupToRun = hooksData.cleanupFunctions[hookIndex];
+	if (typeof cleanupToRun === "function") {
 		try {
-			hooksData.cleanupFunctions[hookIndex]();
+			cleanupToRun();
+			hooksData.cleanupFunctions[hookIndex] = null;
 		} catch (error) {
-			console.error("Error in useEffect cleanup:", error);
+			console.error(
+				`Error in useEffect cleanup for hook ${hookIndex}:`,
+				error
+			);
 		}
 	}
 	setTimeout(() => {
-		if (currentComponent.isMounted !== false) {
-			const cleanup = effect();
-			if (cleanup && typeof cleanup === "function") {
-				hooksData.cleanupFunctions[hookIndex] = cleanup;
-			} else {
-				hooksData.cleanupFunctions[hookIndex] = null;
+		if (component.isMounted !== false) {
+			try {
+				const cleanup = effect();
+				const currentHooksData = componentHooksStore.get(component);
+				if (currentHooksData) {
+					if (cleanup && typeof cleanup === "function") {
+						currentHooksData.cleanupFunctions[hookIndex] = cleanup;
+					} else {
+						currentHooksData.cleanupFunctions[hookIndex] = null;
+					}
+				}
+			} catch (error) {
+				console.error(
+					`Error running effect for hook ${hookIndex}:`,
+					error
+				);
 			}
 		}
 	}, 0);
 }
 function useRef(initialValue) {
-	checkHooksContext();
-	const hooksData = componentHooksStore.get(currentComponent);
+	const component = checkHooksContext();
+	const hooksData = componentHooksStore.get(component);
+	if (!hooksData) {
+		throw new Error(
+			"Component hooks data not found. This is likely a bug in GlyphUI."
+		);
+	}
 	const hookIndex = currentHookIndex++;
 	if (hookIndex >= hooksData.hooks.length) {
 		hooksData.hooks[hookIndex] = {
@@ -225,11 +299,29 @@ function useRef(initialValue) {
 	return hooksData.hooks[hookIndex].value;
 }
 function useMemo(factory, deps) {
-	checkHooksContext();
-	const hooksData = componentHooksStore.get(currentComponent);
+	const component = checkHooksContext();
+	if (typeof factory !== "function") {
+		console.error("useMemo requires a function as its first argument");
+		return undefined;
+	}
+	const hooksData = componentHooksStore.get(component);
+	if (!hooksData) {
+		throw new Error(
+			"Component hooks data not found. This is likely a bug in GlyphUI."
+		);
+	}
 	const hookIndex = currentHookIndex++;
 	if (hookIndex >= hooksData.hooks.length) {
-		const value = factory();
+		let value;
+		try {
+			value = factory();
+		} catch (error) {
+			console.error(
+				`Error calculating initial memoized value for hook ${hookIndex}:`,
+				error
+			);
+			value = undefined;
+		}
 		hooksData.hooks[hookIndex] = {
 			type: "memo",
 			value,
@@ -246,11 +338,22 @@ function useMemo(factory, deps) {
 		deps.length !== oldDeps.length ||
 		deps.some((dep, i) => dep !== oldDeps[i])
 	) {
-		hook.value = factory();
+		try {
+			hook.value = factory();
+		} catch (error) {
+			console.error(
+				`Error recalculating memoized value for hook ${hookIndex}:`,
+				error
+			);
+		}
 	}
 	return hook.value;
 }
 function useCallback(callback, deps) {
+	if (typeof callback !== "function") {
+		console.error("useCallback requires a function as its first argument");
+		return () => {};
+	}
 	return useMemo(() => callback, deps);
 }
 
@@ -684,35 +787,67 @@ function createComponent(ComponentClass, props = {}, children = []) {
 }
 function processComponent(vdom, parentEl, index) {
 	const { ComponentClass, props } = vdom;
-	const instance =
-		typeof ComponentClass === "function" && !ComponentClass.prototype.render
+	let instance;
+	try {
+		const isFunctional =
+			typeof ComponentClass === "function" &&
+			(!ComponentClass.prototype || !ComponentClass.prototype.render);
+		instance = isFunctional
 			? new FunctionalComponentWrapper(ComponentClass, props)
 			: new ComponentClass(props);
-	vdom.instance = instance;
-	instance.mount(parentEl);
-	return instance;
+		vdom.instance = instance;
+		instance.mount(parentEl);
+		return instance;
+	} catch (error) {
+		console.error("Error processing component:", error);
+		const errorEl = document.createElement("div");
+		errorEl.style.color = "red";
+		errorEl.style.padding = "10px";
+		errorEl.style.border = "1px solid red";
+		errorEl.style.margin = "10px 0";
+		errorEl.innerHTML = `
+			<h3>Component Error</h3>
+			<p>${error.message}</p>
+		`;
+		if (parentEl) {
+			parentEl.appendChild(errorEl);
+		}
+		throw error;
+	}
 }
 class FunctionalComponentWrapper {
 	constructor(renderFn, props = {}) {
 		this.renderFn = renderFn;
-		this.props = props;
+		this.props = props || {};
 		this.vdom = null;
 		this.parentEl = null;
 		this.slotContents = {};
 		this.isMounted = false;
-		if (props.children && Array.isArray(props.children)) {
+		if (props && props.children && Array.isArray(props.children)) {
 			this.slotContents = extractSlotContents(props.children);
 		}
 		this._renderComponent = this._renderComponent.bind(this);
 	}
 	mount(parentEl) {
+		if (!parentEl) {
+			console.error("Cannot mount component: No parent element provided");
+			throw new Error(
+				"Cannot mount component: No parent element provided"
+			);
+		}
 		this.parentEl = parentEl;
 		initHooks(this);
-		const rawVdom = this.renderFn(this.props);
-		finishHooks();
-		this.vdom = resolveSlots(rawVdom, this.slotContents);
-		mountDOM(this.vdom, parentEl);
-		this.isMounted = true;
+		try {
+			const rawVdom = this.renderFn(this.props);
+			finishHooks();
+			this.vdom = resolveSlots(rawVdom, this.slotContents);
+			mountDOM(this.vdom, parentEl);
+			this.isMounted = true;
+		} catch (error) {
+			console.error("Error mounting functional component:", error);
+			finishHooks();
+			throw error;
+		}
 		return this;
 	}
 	unmount() {
@@ -725,19 +860,25 @@ class FunctionalComponentWrapper {
 	}
 	updateProps(newProps) {
 		this.props = { ...this.props, ...newProps };
-		if (newProps.children && Array.isArray(newProps.children)) {
+		if (newProps && newProps.children && Array.isArray(newProps.children)) {
 			this.slotContents = extractSlotContents(newProps.children);
 		}
 		return this._renderComponent();
 	}
 	_renderComponent() {
-		if (!this.isMounted) return;
-		initHooks(this);
-		const rawVdom = this.renderFn(this.props);
-		finishHooks();
-		const newVdom = resolveSlots(rawVdom, this.slotContents);
-		this.vdom = patchDOM(this.vdom, newVdom, this.parentEl);
-		return this.vdom;
+		if (!this.isMounted || !this.parentEl) return;
+		try {
+			initHooks(this);
+			const rawVdom = this.renderFn(this.props);
+			finishHooks();
+			const newVdom = resolveSlots(rawVdom, this.slotContents);
+			this.vdom = patchDOM(this.vdom, newVdom, this.parentEl);
+			return this.vdom;
+		} catch (error) {
+			console.error("Error rendering functional component:", error);
+			finishHooks();
+			return this.vdom;
+		}
 	}
 }
 
@@ -833,7 +974,8 @@ class Dispatcher {
 	}
 }
 
-function createApp({ state, view, reducers = {} }) {
+function createApp(config = {}) {
+	const { state = {}, view = null, reducers = {} } = config || {};
 	let parentEl = null;
 	let vdom = null;
 	const dispatcher = new Dispatcher();
@@ -849,19 +991,50 @@ function createApp({ state, view, reducers = {} }) {
 		subscriptions.push(subs);
 	}
 	function renderApp() {
+		if (!view || !parentEl) return;
 		const newVdom = view(state, emit);
 		vdom = patchDOM(vdom, newVdom, parentEl);
 	}
 	return {
-		mount(_parentEl) {
-			parentEl = _parentEl;
-			vdom = view(state, emit);
-			mountDOM(vdom, parentEl);
-			return this;
+		mount(vdomOrEl, _parentEl) {
+			if (vdomOrEl instanceof HTMLElement && !_parentEl) {
+				parentEl = vdomOrEl;
+				if (view) {
+					vdom = view(state, emit);
+					mountDOM(vdom, parentEl);
+				}
+				return this;
+			}
+			if (_parentEl instanceof HTMLElement) {
+				vdom = vdomOrEl;
+				parentEl = _parentEl;
+				try {
+					mountDOM(vdom, parentEl);
+				} catch (error) {
+					console.error("Error mounting component:", error);
+					parentEl.innerHTML = `
+						<div style="color: red; border: 1px solid red; padding: 10px;">
+							<h3>Error Mounting Component</h3>
+							<p>${error.message}</p>
+						</div>
+					`;
+					throw error;
+				}
+				return this;
+			}
+			console.error("Invalid arguments to mount():", {
+				vdomOrEl,
+				_parentEl,
+			});
+			throw new Error(
+				"Invalid arguments to mount(): Expected a parent element"
+			);
 		},
 		unmount() {
-			destroyDOM(vdom);
-			vdom = null;
+			if (vdom) {
+				destroyDOM(vdom);
+				vdom = null;
+			}
 			subscriptions.forEach((unsubscribe) => unsubscribe());
 		},
 		emit(eventName, payload) {

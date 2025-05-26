@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GlyphUI Hooks Minimal Test</title>
+		<style>
+			body {
+				font-family: sans-serif;
+				max-width: 800px;
+				margin: 0 auto;
+				padding: 20px;
+			}
+			button {
+				padding: 8px 16px;
+				margin: 5px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>GlyphUI Hooks Minimal Test</h1>
+		<div id="counter"></div>
+
+		<script type="module">
+			// Import from the framework
+			import {
+				createApp,
+				h,
+				createComponent,
+				useState,
+			} from "../../packages/runtime/dist/glyphui.js";
+
+			// Simple counter component using useState
+			const Counter = () => {
+				console.log("Counter component rendering");
+				console.log("useState is:", useState);
+
+				try {
+					// Use the useState hook
+					const [count, setCount] = useState(0);
+					console.log("Count state initialized to:", count);
+
+					return h("div", {}, [
+						h("h2", {}, ["Counter"]),
+						h("p", {}, [`Count: ${count}`]),
+						h("button", { onclick: () => setCount(count + 1) }, [
+							"Increment",
+						]),
+						h("button", { onclick: () => setCount(count - 1) }, [
+							"Decrement",
+						]),
+						h("button", { onclick: () => setCount(0) }, ["Reset"]),
+					]);
+				} catch (error) {
+					console.error("Error in Counter component:", error);
+					return h("div", { style: "color: red;" }, [
+						h("h2", {}, ["Error"]),
+						h("pre", {}, [error.stack]),
+					]);
+				}
+			};
+
+			// Initialize the app with no parameters
+			console.log("Creating app...");
+			const app = createApp();
+			console.log("App created:", app);
+
+			// Mount the counter component
+			console.log("Mounting component...");
+			try {
+				app.mount(
+					createComponent(Counter, {}),
+					document.getElementById("counter")
+				);
+				console.log("Component mounted successfully");
+			} catch (error) {
+				console.error("Error mounting component:", error);
+				document.getElementById("counter").innerHTML = `
+        <div style="color: red; border: 1px solid red; padding: 10px;">
+          <h3>Error mounting component</h3>
+          <pre>${error.stack}</pre>
+        </div>
+      `;
+			}
+		</script>
+	</body>
+</html>

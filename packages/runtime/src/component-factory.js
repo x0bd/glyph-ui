@@ -42,18 +42,45 @@ export function processComponent(vdom, parentEl, index) {
 	const { ComponentClass, props } = vdom;
 
 	// Create an instance of the component
-	const instance =
-		typeof ComponentClass === "function" && !ComponentClass.prototype.render
+	let instance;
+
+	try {
+		// Check if this is a functional component (no render method on prototype)
+		const isFunctional =
+			typeof ComponentClass === "function" &&
+			(!ComponentClass.prototype || !ComponentClass.prototype.render);
+
+		instance = isFunctional
 			? new FunctionalComponentWrapper(ComponentClass, props)
 			: new ComponentClass(props);
 
-	// Store the instance on the vdom
-	vdom.instance = instance;
+		// Store the instance on the vdom
+		vdom.instance = instance;
 
-	// Mount the component
-	instance.mount(parentEl);
+		// Mount the component
+		instance.mount(parentEl);
 
-	return instance;
+		return instance;
+	} catch (error) {
+		console.error("Error processing component:", error);
+
+		// Create a simple error element if component fails
+		const errorEl = document.createElement("div");
+		errorEl.style.color = "red";
+		errorEl.style.padding = "10px";
+		errorEl.style.border = "1px solid red";
+		errorEl.style.margin = "10px 0";
+		errorEl.innerHTML = `
+			<h3>Component Error</h3>
+			<p>${error.message}</p>
+		`;
+
+		if (parentEl) {
+			parentEl.appendChild(errorEl);
+		}
+
+		throw error;
+	}
 }
 
 /**
@@ -63,14 +90,14 @@ export function processComponent(vdom, parentEl, index) {
 class FunctionalComponentWrapper {
 	constructor(renderFn, props = {}) {
 		this.renderFn = renderFn;
-		this.props = props;
+		this.props = props || {};
 		this.vdom = null;
 		this.parentEl = null;
 		this.slotContents = {};
 		this.isMounted = false;
 
 		// Extract slot content from props.children if available
-		if (props.children && Array.isArray(props.children)) {
+		if (props && props.children && Array.isArray(props.children)) {
 			this.slotContents = extractSlotContents(props.children);
 		}
 
@@ -79,24 +106,37 @@ class FunctionalComponentWrapper {
 	}
 
 	mount(parentEl) {
+		if (!parentEl) {
+			console.error("Cannot mount component: No parent element provided");
+			throw new Error(
+				"Cannot mount component: No parent element provided"
+			);
+		}
+
 		this.parentEl = parentEl;
 
 		// Initialize hooks for this component instance
 		initHooks(this);
 
-		// Render the component
-		const rawVdom = this.renderFn(this.props);
+		try {
+			// Render the component
+			const rawVdom = this.renderFn(this.props);
 
-		// Finish hooks processing for this render
-		finishHooks();
+			// Finish hooks processing for this render
+			finishHooks();
 
-		// Process slots
-		this.vdom = resolveSlots(rawVdom, this.slotContents);
+			// Process slots
+			this.vdom = resolveSlots(rawVdom, this.slotContents);
 
-		// Mount the DOM
-		mountDOM(this.vdom, parentEl);
+			// Mount the DOM
+			mountDOM(this.vdom, parentEl);
 
-		this.isMounted = true;
+			this.isMounted = true;
+		} catch (error) {
+			console.error("Error mounting functional component:", error);
+			finishHooks(); // Make sure we clean up hooks state even in case of error
+			throw error;
+		}
 
 		return this;
 	}
@@ -118,7 +158,7 @@ class FunctionalComponentWrapper {
 		this.props = { ...this.props, ...newProps };
 
 		// Update slot contents when props change
-		if (newProps.children && Array.isArray(newProps.children)) {
+		if (newProps && newProps.children && Array.isArray(newProps.children)) {
 			this.slotContents = extractSlotContents(newProps.children);
 		}
 
@@ -129,23 +169,29 @@ class FunctionalComponentWrapper {
 	 * Internal method to handle rendering and DOM updates.
 	 */
 	_renderComponent() {
-		if (!this.isMounted) return;
+		if (!this.isMounted || !this.parentEl) return;
 
-		// Initialize hooks for this render
-		initHooks(this);
+		try {
+			// Initialize hooks for this render
+			initHooks(this);
 
-		// Render the component
-		const rawVdom = this.renderFn(this.props);
+			// Render the component
+			const rawVdom = this.renderFn(this.props);
 
-		// Finish hooks processing for this render
-		finishHooks();
+			// Finish hooks processing for this render
+			finishHooks();
 
-		// Process slots
-		const newVdom = resolveSlots(rawVdom, this.slotContents);
+			// Process slots
+			const newVdom = resolveSlots(rawVdom, this.slotContents);
 
-		// Patch the DOM
-		this.vdom = patchDOM(this.vdom, newVdom, this.parentEl);
+			// Patch the DOM
+			this.vdom = patchDOM(this.vdom, newVdom, this.parentEl);
 
-		return this.vdom;
+			return this.vdom;
+		} catch (error) {
+			console.error("Error rendering functional component:", error);
+			finishHooks(); // Make sure we clean up hooks state even in case of error
+			return this.vdom;
+		}
 	}
 }

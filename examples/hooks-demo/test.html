@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GlyphUI Hooks Test</title>
+		<style>
+			body {
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+				max-width: 800px;
+				margin: 0 auto;
+				padding: 20px;
+			}
+			button {
+				padding: 8px 16px;
+				margin: 5px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>GlyphUI Hooks Basic Test</h1>
+		<div id="app"></div>
+
+		<script type="module">
+			import {
+				createApp,
+				h,
+				createComponent,
+				useState,
+			} from "../../packages/runtime/dist/glyphui.js";
+
+			// Simple test component
+			const TestCounter = () => {
+				// Check if useState is working
+				console.log("useState imported as:", useState);
+
+				// If useState is undefined, use a basic value
+				let count = 0;
+				let setCount = () => {
+					count++;
+					console.log("Count incremented to", count);
+					document.getElementById("debug-counter").textContent =
+						count;
+				};
+
+				try {
+					// Try to use useState
+					[count, setCount] = useState(0);
+					console.log("useState hook initialized with", count);
+				} catch (e) {
+					console.error("Error using useState:", e);
+				}
+
+				return h("div", {}, [
+					h("h2", {}, ["Counter Test"]),
+					h("p", {}, [`Current count: ${count}`]),
+					h(
+						"button",
+						{
+							onclick: () => {
+								console.log("Increment button clicked");
+								setCount(count + 1);
+							},
+						},
+						["Increment"]
+					),
+					h(
+						"button",
+						{
+							onclick: () => setCount(0),
+						},
+						["Reset"]
+					),
+					h("div", { id: "debug-counter", style: "display: none;" }, [
+						count.toString(),
+					]),
+				]);
+			};
+
+			// Initialize app
+			console.log("Initializing app...");
+			const app = createApp();
+
+			// Mount component
+			console.log("Mounting component...");
+			try {
+				app.mount(
+					createComponent(TestCounter, {}),
+					document.getElementById("app")
+				);
+				console.log("Component mounted successfully");
+			} catch (e) {
+				console.error("Error mounting component:", e);
+				document.getElementById("app").innerHTML = `
+        <div style="color: red; border: 1px solid red; padding: 10px;">
+          <h3>Error mounting component</h3>
+          <pre>${e.stack}</pre>
+        </div>
+      `;
+			}
+		</script>
+	</body>
+</html>

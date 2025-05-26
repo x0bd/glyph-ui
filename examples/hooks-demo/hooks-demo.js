@@ -183,10 +183,28 @@ const MemoComponent = (props) => {
 
 	// An expensive calculation that should be memoized
 	const fibonacci = useMemo(() => {
-		console.log(`Calculating Fibonacci(${number})...`);
+		// For larger numbers, use a more efficient algorithm
+		if (number > 30) {
+			console.log(
+				`Using efficient algorithm for Fibonacci(${number})...`
+			);
+			// Use iterative approach for larger numbers
+			let a = 1,
+				b = 1;
+			for (let i = 3; i <= number; i++) {
+				const temp = a + b;
+				a = b;
+				b = temp;
+			}
+			return b;
+		}
 
+		console.log(`Calculating Fibonacci(${number}) recursively...`);
+
+		// Use recursive approach for smaller numbers to demonstrate memoization
 		const fib = (n) => {
 			if (n <= 1) return n;
+			if (n === 2) return 1;
 			return fib(n - 1) + fib(n - 2);
 		};
 
@@ -217,26 +235,39 @@ const MemoComponent = (props) => {
 	]);
 };
 
+// Mount components with error handling
+function mountComponentSafely(component, containerId) {
+	try {
+		const container = document.getElementById(containerId);
+		if (!container) {
+			console.error(`Container not found: #${containerId}`);
+			return;
+		}
+
+		const app = createApp();
+		app.mount(createComponent(component, {}), container);
+
+		console.log(`Component mounted successfully in #${containerId}`);
+	} catch (error) {
+		console.error(`Error mounting component in #${containerId}:`, error);
+		const container = document.getElementById(containerId);
+		if (container) {
+			container.innerHTML = `
+				<div style="color: red; border: 1px solid red; padding: 10px;">
+					<h3>Error Mounting Component</h3>
+					<pre>${error.message}</pre>
+				</div>
+			`;
+		}
+	}
+}
+
 // Initialize the app
-const app = createApp();
+document.addEventListener("DOMContentLoaded", () => {
+	console.log("DOM loaded, mounting components...");
 
-// Mount all our demo components
-app.mount(
-	createComponent(CounterComponent, {}),
-	document.getElementById("counter-demo")
-);
-
-app.mount(
-	createComponent(TimerComponent, {}),
-	document.getElementById("effect-demo")
-);
-
-app.mount(
-	createComponent(FormComponent, {}),
-	document.getElementById("form-demo")
-);
-
-app.mount(
-	createComponent(MemoComponent, {}),
-	document.getElementById("memo-demo")
-);
+	mountComponentSafely(CounterComponent, "counter-demo");
+	mountComponentSafely(TimerComponent, "effect-demo");
+	mountComponentSafely(FormComponent, "form-demo");
+	mountComponentSafely(MemoComponent, "memo-demo");
+});
