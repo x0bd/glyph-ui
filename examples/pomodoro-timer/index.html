@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Pomodoro Timer | Built with GlyphUI</title>
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap"
+		/>
+		<style>
+			:root {
+				--bg-color: #f8f9fa;
+				--text-color: #212529;
+				--card-bg: #ffffff;
+				--primary-color: #ff6347; /* Tomato red */
+				--secondary-color: #4ea8de;
+				--break-color: #4ade80;
+				--neutral-100: #f5f5f5;
+				--neutral-200: #e9ecef;
+				--neutral-300: #dee2e6;
+				--neutral-400: #ced4da;
+				--neutral-500: #adb5bd;
+				--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+				--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
+				--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+				--radius: 12px;
+				--radius-sm: 6px;
+				--font-sans: "Inter", -apple-system, BlinkMacSystemFont,
+					"Segoe UI", Roboto, sans-serif;
+				--font-mono: "Roboto Mono", monospace;
+				--transition: all 0.2s ease;
+			}
+
+			[data-theme="dark"] {
+				--bg-color: #212529;
+				--text-color: #f8f9fa;
+				--card-bg: #343a40;
+				--primary-color: #ff6347;
+				--secondary-color: #4ea8de;
+				--break-color: #4ade80;
+				--neutral-100: #343a40;
+				--neutral-200: #495057;
+				--neutral-300: #6c757d;
+				--neutral-400: #adb5bd;
+				--neutral-500: #ced4da;
+			}
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			html,
+			body {
+				height: 100%;
+			}
+
+			body {
+				font-family: var(--font-sans);
+				background-color: var(--bg-color);
+				color: var(--text-color);
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 0;
+				line-height: 1.5;
+				transition: var(--transition);
+			}
+
+			h1,
+			h2,
+			h3,
+			h4 {
+				line-height: 1.2;
+				font-weight: 600;
+			}
+
+			.container {
+				max-width: 600px;
+				width: 100%;
+				min-height: 100vh;
+				margin: 0 auto;
+				display: flex;
+				flex-direction: column;
+				padding: 2rem 1.5rem;
+			}
+
+			header {
+				text-align: center;
+				padding-bottom: 1.5rem;
+				margin-bottom: 1.5rem;
+				border-bottom: 1px solid var(--neutral-200);
+			}
+
+			header h1 {
+				font-size: 2rem;
+				margin-bottom: 0.5rem;
+				color: var(--primary-color);
+			}
+
+			header p {
+				color: var(--neutral-500);
+				font-size: 0.9rem;
+			}
+
+			#app {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+			}
+
+			.timer-card {
+				background-color: var(--card-bg);
+				border-radius: var(--radius);
+				box-shadow: var(--shadow-md);
+				padding: 2rem;
+				text-align: center;
+				margin-bottom: 2rem;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.timer-display {
+				font-family: var(--font-mono);
+				font-size: 5rem;
+				font-weight: 500;
+				margin: 1rem 0;
+				color: var(--primary-color);
+				transition: var(--transition);
+			}
+
+			.timer-display.break {
+				color: var(--break-color);
+			}
+
+			.timer-label {
+				font-size: 1.25rem;
+				font-weight: 600;
+				margin-bottom: 1rem;
+				text-transform: uppercase;
+				letter-spacing: 1px;
+			}
+
+			.timer-progress {
+				position: absolute;
+				bottom: 0;
+				left: 0;
+				height: 6px;
+				background-color: var(--primary-color);
+				transition: width 1s linear;
+			}
+
+			.timer-progress.break {
+				background-color: var(--break-color);
+			}
+
+			.controls {
+				display: flex;
+				justify-content: center;
+				gap: 1rem;
+				margin-bottom: 2rem;
+			}
+
+			button {
+				padding: 0.75rem 1.5rem;
+				border-radius: var(--radius-sm);
+				font-family: var(--font-sans);
+				font-size: 0.875rem;
+				font-weight: 600;
+				cursor: pointer;
+				transition: var(--transition);
+				border: none;
+				outline: none;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 0.5rem;
+			}
+
+			.btn-primary {
+				background-color: var(--primary-color);
+				color: white;
+			}
+
+			.btn-primary:hover {
+				transform: translateY(-2px);
+				box-shadow: var(--shadow-md);
+				opacity: 0.9;
+			}
+
+			.btn-secondary {
+				background-color: var(--neutral-200);
+				color: var(--text-color);
+			}
+
+			.btn-secondary:hover {
+				background-color: var(--neutral-300);
+				transform: translateY(-2px);
+			}
+
+			.btn-icon {
+				width: 18px;
+				height: 18px;
+			}
+
+			.settings-card {
+				background-color: var(--card-bg);
+				border-radius: var(--radius);
+				box-shadow: var(--shadow-md);
+				padding: 1.5rem;
+				margin-bottom: 2rem;
+			}
+
+			.settings-title {
+				font-size: 1.25rem;
+				margin-bottom: 1rem;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+
+			.settings-form {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 1rem;
+			}
+
+			.form-group {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+			}
+
+			.form-group label {
+				font-size: 0.875rem;
+				font-weight: 500;
+				color: var(--neutral-500);
+			}
+
+			.form-group input {
+				padding: 0.5rem;
+				border: 1px solid var(--neutral-300);
+				border-radius: var(--radius-sm);
+				font-family: var(--font-sans);
+				background-color: var(--card-bg);
+				color: var(--text-color);
+			}
+
+			.theme-toggle {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: none;
+				border: none;
+				color: var(--neutral-500);
+				cursor: pointer;
+				padding: 0.25rem 0.5rem;
+				border-radius: var(--radius-sm);
+				font-size: 0.875rem;
+			}
+
+			.theme-toggle:hover {
+				background-color: var(--neutral-100);
+			}
+
+			.sessions-card {
+				background-color: var(--card-bg);
+				border-radius: var(--radius);
+				box-shadow: var(--shadow-md);
+				padding: 1.5rem;
+			}
+
+			.sessions-title {
+				font-size: 1.25rem;
+				margin-bottom: 1rem;
+			}
+
+			.sessions-counter {
+				display: flex;
+				justify-content: space-around;
+				margin-bottom: 1rem;
+			}
+
+			.counter-item {
+				text-align: center;
+			}
+
+			.counter-value {
+				font-size: 2rem;
+				font-weight: 700;
+				color: var(--primary-color);
+			}
+
+			.counter-value.break {
+				color: var(--break-color);
+			}
+
+			.counter-label {
+				font-size: 0.75rem;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				color: var(--neutral-500);
+			}
+
+			.notification-toggle {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				margin-top: 1rem;
+				color: var(--neutral-500);
+				font-size: 0.875rem;
+			}
+
+			.toggle-switch {
+				position: relative;
+				display: inline-block;
+				width: 40px;
+				height: 20px;
+			}
+
+			.toggle-switch input {
+				opacity: 0;
+				width: 0;
+				height: 0;
+			}
+
+			.toggle-slider {
+				position: absolute;
+				cursor: pointer;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background-color: var(--neutral-300);
+				transition: 0.4s;
+				border-radius: 20px;
+			}
+
+			.toggle-slider:before {
+				position: absolute;
+				content: "";
+				height: 16px;
+				width: 16px;
+				left: 2px;
+				bottom: 2px;
+				background-color: white;
+				transition: 0.4s;
+				border-radius: 50%;
+			}
+
+			input:checked + .toggle-slider {
+				background-color: var(--primary-color);
+			}
+
+			input:checked + .toggle-slider:before {
+				transform: translateX(20px);
+			}
+
+			@media (max-width: 480px) {
+				.container {
+					padding: 1rem;
+				}
+
+				.timer-display {
+					font-size: 3.5rem;
+				}
+
+				.settings-form {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<h1>Pomodoro Timer</h1>
+				<p>Built with GlyphUI - A JavaScript framework</p>
+			</header>
+			<div id="app"></div>
+		</div>
+		<script type="module" src="timer.js"></script>
+	</body>
+</html>
