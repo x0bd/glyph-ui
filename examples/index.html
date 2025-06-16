@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GlyphUI Examples</title>
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@400;500&display=swap"
+		/>
+		<style>
+			:root {
+				--bg-color: #f8f8f8;
+				--text-color: #333;
+				--accent-color: #c04000;
+				--border-color: #e0e0e0;
+				--card-bg: #fff;
+				--shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+				--font-sans: "Noto Sans JP", sans-serif;
+				--font-serif: "Noto Serif JP", serif;
+				--transition: all 0.3s ease;
+			}
+
+			[data-theme="dark"] {
+				--bg-color: #1a1a1a;
+				--text-color: #f0f0f0;
+				--accent-color: #ff6b35;
+				--border-color: #333;
+				--card-bg: #252525;
+				--shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+			}
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: var(--font-sans);
+				background-color: var(--bg-color);
+				color: var(--text-color);
+				line-height: 1.6;
+				transition: var(--transition);
+				padding: 2rem;
+			}
+
+			.container {
+				max-width: 1000px;
+				margin: 0 auto;
+			}
+
+			header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 3rem;
+				border-bottom: 1px solid var(--border-color);
+				padding-bottom: 1rem;
+			}
+
+			.logo {
+				font-family: var(--font-serif);
+				font-weight: 500;
+				font-size: 1.5rem;
+				letter-spacing: 0.05em;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+			}
+
+			.theme-toggle {
+				background: none;
+				border: 1px solid var(--border-color);
+				color: var(--text-color);
+				width: 2.5rem;
+				height: 2.5rem;
+				border-radius: 50%;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: var(--transition);
+			}
+
+			.theme-toggle:hover {
+				border-color: var(--accent-color);
+				color: var(--accent-color);
+			}
+
+			h1 {
+				font-family: var(--font-serif);
+				font-weight: 500;
+				font-size: 2rem;
+				margin-bottom: 1rem;
+				letter-spacing: 0.05em;
+			}
+
+			h2 {
+				font-family: var(--font-serif);
+				font-weight: 500;
+				font-size: 1.25rem;
+				margin: 2rem 0 1rem;
+				letter-spacing: 0.05em;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+			}
+
+			h2::before {
+				content: "";
+				display: block;
+				width: 1rem;
+				height: 1px;
+				background-color: var(--accent-color);
+			}
+
+			.examples-list {
+				list-style: none;
+				margin-bottom: 2rem;
+			}
+
+			.example-item {
+				border-bottom: 1px solid var(--border-color);
+				transition: var(--transition);
+			}
+
+			.example-link {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 1rem 0;
+				text-decoration: none;
+				color: var(--text-color);
+				transition: var(--transition);
+			}
+
+			.example-link:hover {
+				color: var(--accent-color);
+				padding-left: 0.5rem;
+			}
+
+			.example-title {
+				font-weight: 500;
+			}
+
+			.example-desc {
+				font-size: 0.875rem;
+				color: #888;
+				margin-top: 0.25rem;
+			}
+
+			.example-arrow {
+				font-size: 1.25rem;
+				transition: var(--transition);
+			}
+
+			.example-link:hover .example-arrow {
+				transform: translateX(3px);
+			}
+
+			.new-badge {
+				background-color: var(--accent-color);
+				color: white;
+				font-size: 0.7rem;
+				padding: 0.15rem 0.4rem;
+				border-radius: 2px;
+				margin-left: 0.5rem;
+				font-weight: 400;
+				vertical-align: middle;
+			}
+
+			footer {
+				margin-top: 3rem;
+				padding-top: 1rem;
+				border-top: 1px solid var(--border-color);
+				text-align: center;
+				font-size: 0.875rem;
+				color: #888;
+			}
+
+			@media (max-width: 768px) {
+				body {
+					padding: 1rem;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<div class="logo">
+					<svg
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+						<path d="M2 17l10 5 10-5"></path>
+						<path d="M2 12l10 5 10-5"></path>
+					</svg>
+					GlyphUI
+				</div>
+				<button
+					id="theme-toggle"
+					class="theme-toggle"
+					aria-label="Toggle dark mode"
+				>
+					<svg
+						id="moon-icon"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path
+							d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+						></path>
+					</svg>
+					<svg
+						id="sun-icon"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						style="display: none"
+					>
+						<circle cx="12" cy="12" r="5"></circle>
+						<line x1="12" y1="1" x2="12" y2="3"></line>
+						<line x1="12" y1="21" x2="12" y2="23"></line>
+						<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+						<line
+							x1="18.36"
+							y1="18.36"
+							x2="19.78"
+							y2="19.78"
+						></line>
+						<line x1="1" y1="12" x2="3" y2="12"></line>
+						<line x1="21" y1="12" x2="23" y2="12"></line>
+						<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+						<line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+					</svg>
+				</button>
+			</header>
+
+			<h1>Examples</h1>
+
+			<h2>Featured</h2>
+			<ul class="examples-list">
+				<li class="example-item">
+					<a href="pomodoro-timer/index.html" class="example-link">
+						<div>
+							<div class="example-title">
+								Pomodoro Timer
+								<span class="new-badge">New</span>
+							</div>
+							<div class="example-desc">
+								Time management tool with theme switching
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+				<li class="example-item">
+					<a href="memory-game/index.html" class="example-link">
+						<div>
+							<div class="example-title">Memory Game</div>
+							<div class="example-desc">
+								Card matching game with animations
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+				<li class="example-item">
+					<a href="vercel-todo/index.html" class="example-link">
+						<div>
+							<div class="example-title">Todo App</div>
+							<div class="example-desc">
+								Task management with global state
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+			</ul>
+
+			<h2>All Examples</h2>
+			<ul class="examples-list">
+				<li class="example-item">
+					<a href="tictactoe/index.html" class="example-link">
+						<div>
+							<div class="example-title">Tic-Tac-Toe</div>
+							<div class="example-desc">
+								Classic game with state management
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+				<li class="example-item">
+					<a href="counter/counter.html" class="example-link">
+						<div>
+							<div class="example-title">Counter</div>
+							<div class="example-desc">
+								Simple component state example
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+				<li class="example-item">
+					<a href="slots-demo/slots-demo.html" class="example-link">
+						<div>
+							<div class="example-title">Slots Demo</div>
+							<div class="example-desc">
+								Content projection with slots
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+				<li class="example-item">
+					<a href="lazy-loading/index.html" class="example-link">
+						<div>
+							<div class="example-title">Lazy Loading</div>
+							<div class="example-desc">
+								Load components on demand
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+				<li class="example-item">
+					<a href="hooks-demo/index.html" class="example-link">
+						<div>
+							<div class="example-title">Hooks Demo</div>
+							<div class="example-desc">
+								useState, useEffect and other hooks
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+				<li class="example-item">
+					<a href="state-management/index.html" class="example-link">
+						<div>
+							<div class="example-title">State Management</div>
+							<div class="example-desc">
+								Global state outside components
+							</div>
+						</div>
+						<span class="example-arrow">→</span>
+					</a>
+				</li>
+			</ul>
+
+			<footer>GlyphUI — A minimal JavaScript framework</footer>
+		</div>
+
+		<script>
+			// Theme toggle functionality
+			const themeToggle = document.getElementById("theme-toggle");
+			const moonIcon = document.getElementById("moon-icon");
+			const sunIcon = document.getElementById("sun-icon");
+
+			// Check for saved theme preference or prefer-color-scheme
+			const prefersDarkMode = window.matchMedia(
+				"(prefers-color-scheme: dark)"
+			).matches;
+			const savedTheme = localStorage.getItem("theme");
+
+			// Apply the saved theme or use the preferred scheme
+			if (savedTheme === "dark" || (!savedTheme && prefersDarkMode)) {
+				document.body.setAttribute("data-theme", "dark");
+				moonIcon.style.display = "none";
+				sunIcon.style.display = "block";
+			}
+
+			// Toggle theme
+			themeToggle.addEventListener("click", () => {
+				const currentTheme =
+					document.body.getAttribute("data-theme") || "light";
+				const newTheme = currentTheme === "light" ? "dark" : "light";
+
+				document.body.setAttribute("data-theme", newTheme);
+				localStorage.setItem("theme", newTheme);
+
+				// Toggle icons
+				if (newTheme === "dark") {
+					moonIcon.style.display = "none";
+					sunIcon.style.display = "block";
+				} else {
+					moonIcon.style.display = "block";
+					sunIcon.style.display = "none";
+				}
+			});
+		</script>
+	</body>
+</html>
