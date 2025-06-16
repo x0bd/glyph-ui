@@ -1,427 +1,775 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Memory Game | Built with GlyphUI</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-  <style>
-    :root {
-      --bg-color: #fafafa;
-      --text-color: #000;
-      --card-bg: #fff;
-      --primary-color: #0070f3;
-      --secondary-color: #ff4081;
-      --neutral-100: #f5f5f5;
-      --neutral-200: #e0e0e0;
-      --neutral-300: #b0b0b0;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-      --shadow-md: 0 4px 6px rgba(0,0,0,0.08);
-      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
-      --radius: 8px;
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --transition: all 0.2s ease;
-      --header-height: 100px;
-      --controls-height: 120px;
-    }
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Memory Game | Built with GlyphUI</title>
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@400;500&display=swap"
+		/>
+		<style>
+			:root {
+				--bg-color: #f8f8f8;
+				--text-color: #333;
+				--accent-color: #c04000;
+				--border-color: #e0e0e0;
+				--card-bg: #fff;
+				--card-front: #f3f3f3;
+				--card-matched: #c04000;
+				--shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+				--shadow-md: 0 2px 6px rgba(0, 0, 0, 0.1);
+				--font-sans: "Noto Sans JP", sans-serif;
+				--font-serif: "Noto Serif JP", serif;
+				--transition: all 0.3s ease;
+				--radius: 4px;
+				--pattern-color: rgba(0, 0, 0, 0.03);
+			}
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+			[data-theme="dark"] {
+				--bg-color: #1a1a1a;
+				--text-color: #f0f0f0;
+				--accent-color: #ff6b35;
+				--border-color: #333;
+				--card-bg: #252525;
+				--card-front: #2c2c2c;
+				--shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+				--shadow-md: 0 2px 6px rgba(0, 0, 0, 0.3);
+				--pattern-color: rgba(255, 255, 255, 0.03);
+			}
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
 
-    body {
-      font-family: var(--font-sans);
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 0;
-      line-height: 1.5;
-    }
+			html,
+			body {
+				height: 100%;
+				overflow: hidden;
+			}
 
-    h1, h2, h3, h4 {
-      line-height: 1.2;
-      font-weight: 600;
-    }
+			body {
+				font-family: var(--font-sans);
+				background-color: var(--bg-color);
+				color: var(--text-color);
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 0;
+				line-height: 1.5;
+				transition: var(--transition);
+				background-image: linear-gradient(
+						to right,
+						var(--pattern-color) 1px,
+						transparent 1px
+					),
+					linear-gradient(
+						to bottom,
+						var(--pattern-color) 1px,
+						transparent 1px
+					);
+				background-size: 20px 20px;
+			}
 
-    .container {
-      max-width: 850px;
-      width: 100%;
-      height: 100vh;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      padding: 1.5rem;
-      overflow: hidden;
-    }
+			.container {
+				max-width: 850px;
+				width: 100%;
+				height: 100vh;
+				margin: 0 auto;
+				display: flex;
+				flex-direction: column;
+				padding: 1.5rem;
+				overflow: hidden;
+				position: relative;
+			}
 
-    @media (min-width: 480px) {
-      .container {
-        min-width: 400px;
-        padding: 1.5rem 2rem;
-      }
-    }
+			/* Japanese-inspired decorative element */
+			.container::before {
+				content: "";
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: 3px;
+				background: linear-gradient(
+					to right,
+					transparent,
+					var(--accent-color),
+					transparent
+				);
+				opacity: 0.7;
+			}
 
-    @media (min-width: 640px) {
-      .container {
-        max-width: 900px;
-        padding: 2rem;
-      }
-    }
+			header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding-bottom: 1rem;
+				margin-bottom: 1.5rem;
+				border-bottom: 1px solid var(--border-color);
+			}
 
-    @media (min-width: 1200px) {
-      .container {
-        max-width: 1100px;
-      }
-    }
+			.logo {
+				font-family: var(--font-serif);
+				font-weight: 500;
+				font-size: 1.5rem;
+				letter-spacing: 0.05em;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+			}
 
-    @media (min-height: 800px) {
-      .container {
-        padding-top: 4vh;
-      }
-    }
+			/* Japanese-inspired logo styling */
+			.logo svg {
+				color: var(--accent-color);
+			}
 
-    header {
-      text-align: center;
-      padding-top: 1rem;
-      padding-bottom: 1rem;
-      flex-shrink: 0;
-      margin-bottom: 0.5rem;
-    }
+			.theme-toggle {
+				background: none;
+				border: 1px solid var(--border-color);
+				color: var(--text-color);
+				width: 2.5rem;
+				height: 2.5rem;
+				border-radius: 50%;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: var(--transition);
+			}
 
-    header h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-    }
+			.theme-toggle:hover {
+				border-color: var(--accent-color);
+				color: var(--accent-color);
+			}
 
-    header p {
-      color: var(--neutral-300);
-      font-size: 0.9rem;
-    }
+			#app {
+				display: flex;
+				flex-direction: column;
+				flex: 1;
+				overflow: hidden;
+				min-height: 0;
+			}
 
-    #app {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-      min-height: 0; /* Important for Firefox */
-    }
+			.game-container {
+				display: flex;
+				flex-direction: column;
+				flex: 1;
+				overflow: hidden;
+				min-height: 0;
+			}
 
-    .game-container {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-      min-height: 0; /* Important for Firefox */
-    }
+			.game-stats {
+				display: flex;
+				justify-content: space-between;
+				margin-bottom: 1.5rem;
+				padding: 0.75rem 1rem;
+				border: 1px solid var(--border-color);
+				border-radius: var(--radius);
+				background-color: var(--card-bg);
+				flex-shrink: 0;
+				position: relative;
+				overflow: hidden;
+			}
 
-    .game-stats {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-      padding: 0.75rem 1rem;
-      background-color: var(--card-bg);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-sm);
-      flex-shrink: 0;
-    }
+			/* Japanese-inspired decorative corner */
+			.game-stats::before {
+				content: "";
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 8px;
+				height: 8px;
+				border-top: 2px solid var(--accent-color);
+				border-left: 2px solid var(--accent-color);
+				opacity: 0.7;
+			}
 
-    .stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 0 0.5rem;
-    }
+			.game-stats::after {
+				content: "";
+				position: absolute;
+				bottom: 0;
+				right: 0;
+				width: 8px;
+				height: 8px;
+				border-bottom: 2px solid var(--accent-color);
+				border-right: 2px solid var(--accent-color);
+				opacity: 0.7;
+			}
 
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
+			.stat {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 0 0.5rem;
+			}
 
-    .stat-label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--neutral-300);
-    }
+			.stat-value {
+				font-size: 1.5rem;
+				font-weight: 500;
+				font-family: var(--font-serif);
+				color: var(--accent-color);
+			}
 
-    .game-controls {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 1rem;
-      flex-shrink: 0;
-    }
+			.stat-label {
+				font-size: 0.75rem;
+				color: #888;
+				margin-top: 0.25rem;
+			}
 
-    button {
-      padding: 0.5rem 1rem;
-      border-radius: var(--radius);
-      font-family: var(--font-sans);
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: var(--transition);
-      border: none;
-      outline: none;
-    }
+			.game-controls {
+				display: flex;
+				justify-content: center;
+				margin-bottom: 1.5rem;
+				flex-shrink: 0;
+			}
 
-    .btn-primary {
-      background-color: var(--primary-color);
-      color: white;
-    }
+			button {
+				padding: 0.5rem 1rem;
+				border-radius: var(--radius);
+				font-family: var(--font-sans);
+				font-size: 0.875rem;
+				font-weight: 500;
+				cursor: pointer;
+				transition: var(--transition);
+				border: 1px solid var(--border-color);
+				background: none;
+				color: var(--text-color);
+			}
 
-    .btn-primary:hover {
-      background-color: #0060df;
-      transform: translateY(-1px);
-    }
+			.btn-primary {
+				background-color: var(--accent-color);
+				border-color: var(--accent-color);
+				color: white;
+				position: relative;
+				overflow: hidden;
+			}
 
-    .btn-secondary {
-      background-color: var(--neutral-100);
-      color: var(--text-color);
-      margin-left: 0.75rem;
-    }
+			/* Japanese-inspired button effect */
+			.btn-primary::after {
+				content: "";
+				position: absolute;
+				top: -50%;
+				left: -50%;
+				width: 200%;
+				height: 200%;
+				background: radial-gradient(
+					circle,
+					rgba(255, 255, 255, 0.3) 0%,
+					rgba(255, 255, 255, 0) 70%
+				);
+				opacity: 0;
+				transition: opacity 0.5s;
+			}
 
-    .btn-secondary:hover {
-      background-color: var(--neutral-200);
-    }
+			.btn-primary:hover::after {
+				opacity: 1;
+			}
 
-    .game-board {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.75rem;
-      flex: 1;
-      overflow-y: auto;
-      padding-bottom: 1rem;
-      align-content: start;
-      margin-right: -0.25rem;
-      padding-right: 0.25rem;
-      -webkit-overflow-scrolling: touch;
-      min-height: 0;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
-      width: 100%;
-    }
+			.btn-primary:hover {
+				opacity: 0.9;
+				transform: translateY(-1px);
+			}
 
-    /* Specific styles for different difficulty levels */
-    .game-board-easy {
-      max-width: 650px;
-    }
-    
-    .game-board-medium {
-      max-width: 750px;
-    }
-    
-    .game-board-hard {
-      max-width: 900px;
-    }
-    
-    @media (min-width: 1200px) {
-      .game-board-hard {
-        max-width: 1050px;
-      }
-    }
-    
-    /* Adjust gap size based on screen size */
-    @media (min-width: 640px) {
-      .game-board {
-        gap: 1rem;
-      }
-    }
-    
-    @media (min-width: 900px) {
-      .game-board {
-        gap: 1.25rem;
-      }
-    }
+			.btn-secondary {
+				margin-left: 0.75rem;
+			}
 
-    .card {
-      aspect-ratio: 3/4;
-      border-radius: var(--radius);
-      background-color: var(--card-bg);
-      box-shadow: var(--shadow-sm);
-      cursor: pointer;
-      transition: var(--transition);
-      position: relative;
-      transform-style: preserve-3d;
-      transform: perspective(1000px) rotateY(0deg);
-      min-height: 80px;
-      max-height: 160px;
-    }
+			.btn-secondary:hover {
+				border-color: var(--accent-color);
+				color: var(--accent-color);
+			}
 
-    @media (min-height: 800px) {
-      .card {
-        max-height: 180px;
-      }
-    }
+			.game-board {
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				gap: 1rem;
+				flex: 1;
+				overflow-y: auto;
+				padding-bottom: 1rem;
+				align-content: start;
+				margin: 0 auto;
+				width: 100%;
+				max-width: 650px;
+				min-height: 0;
+				scrollbar-width: thin;
+				scrollbar-color: var(--border-color) transparent;
+			}
 
-    @media (min-height: 1000px) {
-      .card {
-        max-height: 220px;
-      }
-    }
+			/* Custom scrollbar */
+			.game-board::-webkit-scrollbar {
+				width: 6px;
+			}
 
-    .card:hover {
-      transform: perspective(1000px) rotateY(0deg) translateY(-5px);
-      box-shadow: var(--shadow-md);
-    }
+			.game-board::-webkit-scrollbar-track {
+				background: transparent;
+			}
 
-    .card.flipped {
-      transform: perspective(1000px) rotateY(180deg);
-    }
+			.game-board::-webkit-scrollbar-thumb {
+				background-color: var(--border-color);
+				border-radius: 20px;
+			}
 
-    .card.matched {
-      box-shadow: 0 0 0 2px var(--primary-color);
-    }
+			/* Specific styles for different difficulty levels */
+			.game-board-easy {
+				grid-template-columns: repeat(4, 1fr);
+				max-width: 650px;
+			}
 
-    .card-front, .card-back {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      backface-visibility: hidden;
-      border-radius: var(--radius);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      font-weight: 700;
-    }
+			.game-board-medium {
+				grid-template-columns: repeat(5, 1fr);
+				max-width: 750px;
+			}
 
-    .card-front {
-      background-color: var(--neutral-100);
-      background-image: linear-gradient(135deg, var(--neutral-100), var(--neutral-200));
-    }
-    
-    .card-front::after {
-      content: '';
-      position: absolute;
-      width: 30%;
-      height: 30%;
-      border-radius: 50%;
-      background-color: rgba(255, 255, 255, 0.5);
-      background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
-    }
+			.game-board-hard {
+				grid-template-columns: repeat(6, 1fr);
+				max-width: 900px;
+			}
 
-    .card-back {
-      background-color: white;
-      transform: rotateY(180deg);
-    }
-    
-    /* Medium screens */
-    @media (min-width: 768px) {
-      .card-front, .card-back {
-        font-size: 2.25rem;
-      }
-    }
-    
-    /* Large screens */
-    @media (min-width: 1200px) {
-      .card-front, .card-back {
-        font-size: 2.5rem;
-      }
-    }
+			.card {
+				aspect-ratio: 3/4;
+				border-radius: var(--radius);
+				background-color: var(--card-bg);
+				border: 1px solid var(--border-color);
+				cursor: pointer;
+				transition: var(--transition);
+				position: relative;
+				transform-style: preserve-3d;
+				transform: perspective(1000px) rotateY(0deg);
+				min-height: 80px;
+				max-height: 160px;
+				box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+			}
 
-    .restart-message {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 2rem;
-      background-color: var(--card-bg);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-lg);
-      text-align: center;
-      z-index: 10;
-    }
+			.card:hover {
+				transform: perspective(1000px) rotateY(0deg) translateY(-2px);
+				border-color: var(--accent-color);
+				box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+			}
 
-    .restart-message h2 {
-      margin-bottom: 1rem;
-    }
+			.card.flipped {
+				transform: perspective(1000px) rotateY(180deg);
+			}
 
-    .difficulty-selector {
-      margin-top: 1rem;
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
-    }
+			.card.matched {
+				border-color: var(--card-matched);
+				border-width: 2px;
+				box-shadow: 0 0 5px rgba(192, 64, 0, 0.3);
+			}
 
-    .completion-message {
-      text-align: center;
-      margin: 0.5rem 0;
-      padding: 1rem;
-      background-color: var(--primary-color);
-      color: white;
-      border-radius: var(--radius);
-      font-weight: 600;
-      flex-shrink: 0;
-      box-shadow: var(--shadow-md);
-      animation: fadeIn 0.5s ease-out;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+			.card-front,
+			.card-back {
+				position: absolute;
+				width: 100%;
+				height: 100%;
+				backface-visibility: hidden;
+				border-radius: calc(var(--radius) - 1px);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 2rem;
+				font-weight: 500;
+				font-family: var(--font-serif);
+			}
 
-    .victory-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      animation: fadeIn 0.5s ease-out;
-    }
-    
-    .victory-card {
-      background-color: white;
-      border-radius: var(--radius);
-      padding: 2rem;
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: var(--shadow-lg);
-    }
-    
-    .victory-card h2 {
-      margin-bottom: 1rem;
-      font-size: 1.75rem;
-      color: var(--primary-color);
-    }
-    
-    .victory-card p {
-      margin-bottom: 1.5rem;
-      font-size: 1.1rem;
-    }
-    
-    .confetti {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background-color: var(--primary-color);
-      animation: confetti 5s ease-in infinite;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>Memory Game</h1>
-      <p>Built with GlyphUI - A JavaScript framework</p>
-    </header>
-    <div id="app"></div>
-  </div>
-  <script type="module" src="game.js"></script>
-</body>
-</html> 
+			.card-front {
+				background-color: var(--card-front);
+				overflow: hidden;
+			}
+
+			/* Japanese-inspired card pattern - Seigaiha (wave) pattern */
+			.card-front::before {
+				content: "";
+				position: absolute;
+				width: 200%;
+				height: 200%;
+				top: -50%;
+				left: -50%;
+				background-image: radial-gradient(
+						circle at 100% 150%,
+						var(--border-color) 24%,
+						transparent 25%
+					),
+					radial-gradient(
+						circle at 0% 150%,
+						var(--border-color) 24%,
+						transparent 25%
+					),
+					radial-gradient(
+						circle at 50% 100%,
+						var(--border-color) 15%,
+						transparent 16%
+					),
+					radial-gradient(
+						circle at 100% 50%,
+						var(--border-color) 15%,
+						transparent 16%
+					),
+					radial-gradient(
+						circle at 0% 50%,
+						var(--border-color) 15%,
+						transparent 16%
+					),
+					radial-gradient(
+						circle at 50% 0%,
+						var(--border-color) 15%,
+						transparent 16%
+					);
+				background-size: 20px 20px;
+				opacity: 0.1;
+			}
+
+			/* Circular emblem in center - Japanese mon style */
+			.card-front::after {
+				content: "";
+				position: absolute;
+				width: 40%;
+				height: 40%;
+				border-radius: 50%;
+				border: 1px solid var(--border-color);
+				opacity: 0.7;
+				background: radial-gradient(
+					circle,
+					transparent 60%,
+					var(--border-color) 60%,
+					var(--border-color) 63%,
+					transparent 63%
+				);
+			}
+
+			.card-back {
+				background-color: var(--card-bg);
+				transform: rotateY(180deg);
+			}
+
+			.restart-message {
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				padding: 2rem;
+				background-color: var(--card-bg);
+				border: 1px solid var(--border-color);
+				border-radius: var(--radius);
+				text-align: center;
+				z-index: 10;
+			}
+
+			.restart-message h2 {
+				font-family: var(--font-serif);
+				font-weight: 500;
+				font-size: 1.25rem;
+				margin-bottom: 1rem;
+				letter-spacing: 0.05em;
+				color: var(--accent-color);
+			}
+
+			.difficulty-selector {
+				margin-top: 1rem;
+				display: flex;
+				gap: 0.5rem;
+				justify-content: center;
+			}
+
+			.completion-message {
+				text-align: center;
+				margin: 0.5rem 0;
+				padding: 1rem;
+				background-color: var(--accent-color);
+				color: white;
+				border-radius: var(--radius);
+				font-weight: 500;
+				flex-shrink: 0;
+				animation: fadeIn 0.5s ease-out;
+			}
+
+			@keyframes fadeIn {
+				from {
+					opacity: 0;
+					transform: translateY(-10px);
+				}
+				to {
+					opacity: 1;
+					transform: translateY(0);
+				}
+			}
+
+			.victory-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background-color: rgba(0, 0, 0, 0.7);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				z-index: 10;
+				animation: fadeIn 0.5s ease-out;
+			}
+
+			.victory-card {
+				background-color: var(--card-bg);
+				border: 1px solid var(--border-color);
+				border-radius: var(--radius);
+				padding: 2rem;
+				text-align: center;
+				max-width: 400px;
+				width: 90%;
+				position: relative;
+				overflow: hidden;
+			}
+
+			/* Japanese-inspired corner decorations */
+			.victory-card::before,
+			.victory-card::after {
+				content: "";
+				position: absolute;
+				width: 30px;
+				height: 30px;
+				opacity: 0.7;
+			}
+
+			.victory-card::before {
+				top: 0;
+				left: 0;
+				border-top: 2px solid var(--accent-color);
+				border-left: 2px solid var(--accent-color);
+			}
+
+			.victory-card::after {
+				bottom: 0;
+				right: 0;
+				border-bottom: 2px solid var(--accent-color);
+				border-right: 2px solid var(--accent-color);
+			}
+
+			.victory-card h2 {
+				font-family: var(--font-serif);
+				font-weight: 500;
+				margin-bottom: 1rem;
+				font-size: 1.5rem;
+				color: var(--accent-color);
+				letter-spacing: 0.05em;
+			}
+
+			.victory-card p {
+				margin-bottom: 1.5rem;
+				font-size: 1rem;
+			}
+
+			.confetti {
+				position: absolute;
+				width: 8px;
+				height: 8px;
+				background-color: var(--accent-color);
+				animation: confetti 5s ease-in infinite;
+			}
+
+			footer {
+				margin-top: 1rem;
+				padding-top: 1rem;
+				border-top: 1px solid var(--border-color);
+				text-align: center;
+				font-size: 0.875rem;
+				color: #888;
+				position: relative;
+			}
+
+			/* Japanese-inspired decorative element */
+			footer::before {
+				content: "和"; /* Japanese character for "harmony" */
+				position: absolute;
+				top: -10px;
+				left: 50%;
+				transform: translateX(-50%);
+				background-color: var(--bg-color);
+				padding: 0 10px;
+				color: var(--accent-color);
+				font-family: var(--font-serif);
+				font-size: 0.8rem;
+				opacity: 0.7;
+			}
+
+			@media (min-width: 480px) {
+				.container {
+					min-width: 400px;
+					padding: 1.5rem 2rem;
+				}
+			}
+
+			@media (min-width: 640px) {
+				.container {
+					max-width: 900px;
+					padding: 2rem;
+				}
+
+				.game-board {
+					gap: 1.25rem;
+				}
+
+				.game-board-medium {
+					gap: 1rem;
+				}
+
+				.game-board-hard {
+					gap: 0.75rem;
+				}
+			}
+
+			@media (min-width: 900px) {
+				.game-board {
+					gap: 1.5rem;
+				}
+
+				.game-board-medium {
+					gap: 1.25rem;
+				}
+
+				.game-board-hard {
+					gap: 1rem;
+				}
+			}
+
+			@media (min-width: 1200px) {
+				.container {
+					max-width: 1100px;
+				}
+
+				.game-board-hard {
+					max-width: 1050px;
+				}
+			}
+
+			@media (min-height: 800px) {
+				.container {
+					padding-top: 4vh;
+				}
+
+				.card {
+					max-height: 180px;
+				}
+			}
+
+			@media (min-height: 1000px) {
+				.card {
+					max-height: 220px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<div class="logo">
+					<svg
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+						<path d="M2 17l10 5 10-5"></path>
+						<path d="M2 12l10 5 10-5"></path>
+					</svg>
+					Memory Game
+				</div>
+				<button
+					id="theme-toggle"
+					class="theme-toggle"
+					aria-label="Toggle dark mode"
+				>
+					<svg
+						id="moon-icon"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path
+							d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+						></path>
+					</svg>
+					<svg
+						id="sun-icon"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						style="display: none"
+					>
+						<circle cx="12" cy="12" r="5"></circle>
+						<line x1="12" y1="1" x2="12" y2="3"></line>
+						<line x1="12" y1="21" x2="12" y2="23"></line>
+						<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+						<line
+							x1="18.36"
+							y1="18.36"
+							x2="19.78"
+							y2="19.78"
+						></line>
+						<line x1="1" y1="12" x2="3" y2="12"></line>
+						<line x1="21" y1="12" x2="23" y2="12"></line>
+						<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+						<line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+					</svg>
+				</button>
+			</header>
+			<div id="app"></div>
+			<footer>Built with GlyphUI</footer>
+		</div>
+		<script type="module" src="game.js"></script>
+		<script>
+			// Theme toggle functionality
+			const themeToggle = document.getElementById("theme-toggle");
+			const moonIcon = document.getElementById("moon-icon");
+			const sunIcon = document.getElementById("sun-icon");
+
+			// Check for saved theme preference or prefer-color-scheme
+			const prefersDarkMode = window.matchMedia(
+				"(prefers-color-scheme: dark)"
+			).matches;
+			const savedTheme = localStorage.getItem("theme");
+
+			// Apply the saved theme or use the preferred scheme
+			if (savedTheme === "dark" || (!savedTheme && prefersDarkMode)) {
+				document.body.setAttribute("data-theme", "dark");
+				moonIcon.style.display = "none";
+				sunIcon.style.display = "block";
+			}
+
+			// Toggle theme
+			themeToggle.addEventListener("click", () => {
+				const currentTheme =
+					document.body.getAttribute("data-theme") || "light";
+				const newTheme = currentTheme === "light" ? "dark" : "light";
+
+				document.body.setAttribute("data-theme", newTheme);
+				localStorage.setItem("theme", newTheme);
+
+				// Toggle icons
+				if (newTheme === "dark") {
+					moonIcon.style.display = "none";
+					sunIcon.style.display = "block";
+				} else {
+					moonIcon.style.display = "block";
+					sunIcon.style.display = "none";
+				}
+			});
+		</script>
+	</body>
+</html>
