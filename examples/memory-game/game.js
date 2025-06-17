@@ -226,10 +226,11 @@ class MemoryGame extends Component {
 					flippedCards: [],
 					moves: 0,
 					matches: 0,
-					startTime: Date.now(),
+					startTime: null,
 					isGameComplete: false,
 					showDifficultyDialog: false,
 					difficulty: "medium",
+					timerUpdate: 0,
 				},
 			}
 		);
@@ -241,92 +242,10 @@ class MemoryGame extends Component {
 		this.showDifficultyDialog = this.showDifficultyDialog.bind(this);
 		this.closeDifficultyDialog = this.closeDifficultyDialog.bind(this);
 		this.changeDifficulty = this.changeDifficulty.bind(this);
+		this.startGame = this.startGame.bind(this);
 	}
 
-	// Set up timer when component is mounted
-	mounted() {
-		this.timerInterval = setInterval(() => {
-			this.setState({ updateTimer: Date.now() });
-		}, 1000);
-	}
-
-	// Clean up timer when component is unmounted
-	beforeUnmount() {
-		clearInterval(this.timerInterval);
-	}
-
-	// Handle card click event
-	handleCardClick(card) {
-		const { deck, flippedCards, moves, isGameComplete } = this.state;
-
-		// Ignore clicks if game is complete or card is already flipped/matched
-		if (
-			isGameComplete ||
-			flippedCards.length >= 2 ||
-			card.isFlipped ||
-			card.isMatched
-		) {
-			return;
-		}
-
-		// Create a new deck with the clicked card flipped
-		const newDeck = deck.map((c) => {
-			if (c.id === card.id) {
-				return { ...c, isFlipped: true };
-			}
-			return c;
-		});
-
-		// Add card to flippedCards array
-		const newFlippedCards = [...flippedCards, card];
-
-		// Update state
-		this.setState({
-			deck: newDeck,
-			flippedCards: newFlippedCards,
-			moves: moves + 1,
-		});
-
-		// If we have 2 flipped cards, check for a match
-		if (newFlippedCards.length === 2) {
-			setTimeout(this.checkForMatch, 800);
-		}
-	}
-
-	// Check if flipped cards match
-	checkForMatch() {
-		const { deck, flippedCards, matches } = this.state;
-		const [card1, card2] = flippedCards;
-
-		// Check if cards match
-		const isMatch = card1.symbol === card2.symbol;
-
-		// Update deck based on match result
-		const newDeck = deck.map((card) => {
-			if (flippedCards.some((c) => c.id === card.id)) {
-				if (isMatch) {
-					return { ...card, isMatched: true };
-				} else {
-					return { ...card, isFlipped: false };
-				}
-			}
-			return card;
-		});
-
-		// Check if all cards are matched (game complete)
-		const isGameComplete = newDeck.every((card) => card.isMatched);
-
-		// Update state
-		this.setState({
-			deck: newDeck,
-			flippedCards: [],
-			matches: isMatch ? matches + 1 : matches,
-			isGameComplete,
-		});
-	}
-
-	// Restart game with current difficulty
-	restartGame() {
+	startGame() {
 		this.setState({
 			deck: createDeck(this.state.difficulty),
 			flippedCards: [],
@@ -334,30 +253,95 @@ class MemoryGame extends Component {
 			matches: 0,
 			startTime: Date.now(),
 			isGameComplete: false,
+			showDifficultyDialog: false,
 		});
 	}
 
-	// Show difficulty dialog
+	mounted() {
+		this.startGame();
+		this.timerInterval = setInterval(() => {
+			if (this.state.startTime && !this.state.isGameComplete) {
+				this.setState({ timerUpdate: Date.now() });
+			}
+		}, 1000);
+	}
+
+	beforeUnmount() {
+		clearInterval(this.timerInterval);
+	}
+
+	handleCardClick(card) {
+		const { flippedCards, isGameComplete, deck } = this.state;
+		if (isGameComplete || flippedCards.length >= 2 || card.isFlipped) {
+			return;
+		}
+
+		const newDeck = deck.map((c) =>
+			c.id === card.id ? { ...c, isFlipped: true } : c
+		);
+
+		const newFlippedCards = [
+			...flippedCards,
+			newDeck.find((c) => c.id === card.id),
+		];
+
+		this.setState({
+			deck: newDeck,
+			flippedCards: newFlippedCards,
+			moves: this.state.moves + 1,
+		});
+
+		if (newFlippedCards.length === 2) {
+			setTimeout(this.checkForMatch, 700);
+		}
+	}
+
+	checkForMatch() {
+		const { flippedCards, deck, matches } = this.state;
+		const [card1, card2] = flippedCards;
+		const isMatch = card1.symbol === card2.symbol;
+
+		let newDeck;
+		if (isMatch) {
+			newDeck = deck.map((card) =>
+				card.symbol === card1.symbol
+					? { ...card, isMatched: true }
+					: card
+			);
+		} else {
+			newDeck = deck.map((card) =>
+				card.id === card1.id || card.id === card2.id
+					? { ...card, isFlipped: false }
+					: card
+			);
+		}
+
+		const newMatches = isMatch ? matches + 1 : matches;
+		const isGameComplete = newDeck.every((card) => card.isMatched);
+
+		this.setState({
+			deck: newDeck,
+			flippedCards: [],
+			matches: newMatches,
+			isGameComplete,
+		});
+	}
+
+	restartGame() {
+		this.startGame();
+	}
+
 	showDifficultyDialog() {
 		this.setState({ showDifficultyDialog: true });
 	}
 
-	// Close difficulty dialog
 	closeDifficultyDialog() {
 		this.setState({ showDifficultyDialog: false });
 	}
 
-	// Change difficulty and restart game
 	changeDifficulty(difficulty) {
-		this.setState({
-			difficulty,
-			deck: createDeck(difficulty),
-			flippedCards: [],
-			moves: 0,
-			matches: 0,
-			startTime: Date.now(),
-			isGameComplete: false,
-			showDifficultyDialog: false,
+		this.setState({ difficulty }, () => {
+			this.startGame();
 		});
 	}
 
@@ -371,21 +355,14 @@ class MemoryGame extends Component {
 			showDifficultyDialog,
 			difficulty,
 		} = state;
-
-		// Determine board class based on difficulty
 		const boardClass = `game-board game-board-${difficulty}`;
 
 		return h("div", { class: "game-container" }, [
-			// Game stats
 			createComponent(GameStats, { moves, matches, startTime }),
-
-			// Game controls
 			createComponent(GameControls, {
 				onRestart: this.restartGame,
 				onChangeDifficulty: this.showDifficultyDialog,
 			}),
-
-			// Game board
 			h(
 				"div",
 				{ class: boardClass },
@@ -397,21 +374,17 @@ class MemoryGame extends Component {
 					})
 				)
 			),
-
-			// Difficulty dialog
 			showDifficultyDialog &&
 				createComponent(DifficultyDialog, {
 					onClose: this.closeDifficultyDialog,
 					onSelectDifficulty: this.changeDifficulty,
 				}),
-
-			// Victory overlay
 			isGameComplete &&
 				h("div", { class: "victory-overlay" }, [
 					h("div", { class: "victory-card" }, [
 						h("h2", {}, ["You Win!"]),
 						h("p", {}, [
-							`You completed the game in ${moves} moves and ${Math.floor(
+							`Completed in ${moves} moves and ${Math.floor(
 								(Date.now() - startTime) / 1000
 							)} seconds.`,
 						]),
