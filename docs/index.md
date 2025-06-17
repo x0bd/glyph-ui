@@ -16,3 +16,5 @@ Welcome to the official documentation for GlyphUI, a lightweight and modern Java
     -   Explore different patterns for managing state in your application, from local state to a global store.
 -   [**Advanced Topics**](./advanced-topics.md)
     -   Discover advanced features like lazy loading components, using slots, and more.
+-   [**Testing**](./testing.md)
+    -   Learn how to write unit and integration tests for your GlyphUI application using Vitest.
