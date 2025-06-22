@@ -683,3 +683,88 @@ This implementation effectively synthesizes the core features of GlyphUI:
 
 **Finding:**
 The successful implementation of the Memory Game serves as a comprehensive validation of the GlyphUI framework. It proves that the individual features—components, state management, event handling, and asynchronous control—do not merely function in isolation but integrate seamlessly to create a complete, interactive, and stateful web application. This capstone project confirms that the framework's design is robust and its feature set is sufficient for building the kind of dynamic applications it was designed for, thus achieving the project's primary objective.
+
+## 4.2 Testing Techniques
+
+A critical result of a well-designed framework is the testability of the applications it produces. This section explores and demonstrates various testing methodologies as they apply to applications built with GlyphUI. Rather than relying on external testing libraries, these techniques will be demonstrated conceptually by observing the behavior of the example applications. This approach serves to prove that the framework's architecture naturally lends itself to being tested, a key finding of this project.
+
+### 4.2.1 White-Box Testing
+
+White-box testing is a methodology where the tester has full visibility into the internal logic and structure of the code. The goal is to verify that internal code paths execute as expected.
+
+**Example Application: The Counter (`examples/counter/`)**
+
+The Counter example is ideal for this demonstration. Its logic is contained entirely within a single component, and its internal workings are simple to understand.
+
+**Test Procedure:**
+The primary test case is to verify that clicking the "Increment" button correctly triggers the state update logic.
+
+1.  **Examine the Code:** The tester first reviews the source code, noting the key line: `on: { click: () => setCount(count + 1) }`. The test is designed to confirm this specific path.
+2.  **Initial State Verification:** The application is loaded, and the UI displays "Current Count: 0". This is confirmed as the initial state set by `useState(0)`.
+3.  **Execute Path:** The "Increment" button is clicked.
+4.  **Result Verification:** The UI updates to "Current Count: 1".
+5.  **Conclusion:** The tester concludes that the click event successfully executed the `setCount(count + 1)` function call. The observed result directly correlates with the expected outcome of that specific line of code, thus validating the internal logic path.
+
+`[Image: Screenshot of the Counter example UI, with an arrow pointing from the 'Increment' button to the updated number '1'.]`
+
+### 4.2.2 Unit Testing
+
+Unit testing focuses on the smallest individual components, or "units," of an application in isolation, often pure functions that do not rely on the UI.
+
+**Example Application: The Memory Game (`examples/memory-game/`)**
+
+Within the Memory Game, the `createDeck()` function is a perfect example of a testable unit. It is a pure function responsible for creating and shuffling the deck of cards. Its correctness can be verified independently of the game's UI.
+
+**Test Procedure:**
+The test case is to ensure `createDeck()` returns a valid, shuffled array of 16 symbols.
+
+1.  **Isolate the Unit:** The `createDeck()` function is identified as the unit under test.
+2.  **Execute in Isolation:** A tester would execute this function in the browser's developer console or a simple script to capture its output.
+3.  **Verify the Output:** The returned array is inspected to confirm it meets the required criteria:
+    -   Does the array have a length of 16?
+    -   Does it contain exactly two of each of the 8 unique symbols?
+    -   Is the order of the symbols different each time the function is called (confirming the shuffle)?
+4.  **Conclusion:** By confirming these properties, the `createDeck` unit is validated as correct, independent of any component rendering or user interaction. This ensures a foundational piece of the game's logic is reliable.
+
+`[Image: Screenshot of a browser's developer console showing the array returned by createDeck(), highlighting its length and contents.]`
+
+### 4.2.3 Integration Testing
+
+Integration testing verifies that different parts of an application work together correctly. This tests the "integration" of components, state management, and event emitters.
+
+**Example Application: The To-Do List (`examples/todo/`)**
+
+The To-Do List is a classic example for integration testing. It involves an input component, a list rendering component, and a centralized state management system (reducers) that must all work in concert.
+
+**Test Procedure:**
+The test case is to ensure a new to-do can be added and its state can be toggled.
+
+1.  **Initial State:** The application is loaded, showing an empty input field and no items in the list.
+2.  **Execute Action 1 (Integration Point A):** A user types "Buy milk" into the input field and clicks the "Add" button. This action integrates the **Input Component**, the **`emit` function**, the **`add-todo` reducer**, and the **State object**.
+3.  **Verify Result 1:** The **List Component** re-renders to display "Buy milk" as a new item. The successful appearance of this item validates that Integration Point A is working correctly.
+4.  **Execute Action 2 (Integration Point B):** The user clicks the "Complete" button next to the "Buy milk" item. This integrates the **Todo Item Component**, the **`emit` function**, the **`toggle-todo` reducer**, and the **State object**.
+5.  **Verify Result 2:** The "Buy milk" item changes its appearance (e.g., gets a line-through). This validates that Integration Point B is working correctly.
+6.  **Conclusion:** The successful completion of this sequence proves that the various components and the state management system are correctly integrated and can communicate effectively to produce the desired application behavior.
+
+`[Image: Screenshot of the To-Do List app showing a newly added item and another item that has been marked as complete.]`
+
+### 4.2.4 Black-Box Testing
+
+Black-box testing treats the application as an opaque "box". The tester has no knowledge of the internal code and only tests from the end-user's perspective, verifying that a given set of inputs produces the expected outputs.
+
+**Example Application: The Memory Game (`examples/memory-game/`)**
+
+The Memory Game, with its clear rules and win condition, is perfectly suited for black-box testing.
+
+**Test Procedure:**
+A tester is given a simple requirement: "The user must be able to win the game by matching all pairs of cards."
+
+1.  **Input:** Click a card (e.g., the rocket emoji). **Output:** The card flips to show the rocket.
+2.  **Input:** Click a different, non-matching card (e.g., the star). **Output:** The card flips to show the star, then both cards flip back face-down after a brief pause.
+3.  **Input:** Click the first card (rocket) again, then click its matching pair in a different location. **Output:** Both rocket cards remain face-up and are visually marked as "matched".
+4.  **Repetitive Input:** Continue this process for all remaining pairs.
+5.  **Final Input:** Match the final pair of cards.
+6.  **Expected Final Output:** A "Congratulations, You Win!" message is displayed on the screen.
+7.  **Conclusion:** Since the final, expected output was achieved by following the rules, the application passes the black-box test. The internal implementation is irrelevant; what matters is that the application functions correctly from the user's viewpoint.
+
+`[Image: Screenshot of the Memory Game showing the final "You Win!" message after all cards have been successfully matched.]`
