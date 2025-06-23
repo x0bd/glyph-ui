@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GlyphUI - Clock Example</title>
+		<link
+			href="https://api.fontsource.org/css/geist-mono"
+			rel="stylesheet"
+		/>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				font-family: "Geist Mono", monospace;
+				background: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				color: #000;
+			}
+			header {
+				padding: 20px;
+				text-align: center;
+				margin-bottom: 20px;
+			}
+			h1 {
+				font-size: 2.5rem;
+				margin-bottom: 10px;
+			}
+			main {
+				width: 90%;
+				max-width: 600px;
+				background: #fff;
+				border-radius: 8px;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+				overflow: hidden;
+				margin-bottom: 40px;
+			}
+			.clock-container {
+				padding: 30px;
+				text-align: center;
+			}
+			.clock-title {
+				font-size: 1.8rem;
+				margin-bottom: 20px;
+				font-weight: 500;
+			}
+			.clock-display {
+				font-size: 3rem;
+				margin: 30px 0;
+				padding: 20px;
+				background: #f8f9fa;
+				border-radius: 8px;
+				box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+			}
+			.time {
+				font-weight: 500;
+			}
+			.clock-info {
+				margin-top: 20px;
+				font-size: 0.9rem;
+				color: #666;
+			}
+			.home-link {
+				position: absolute;
+				top: 20px;
+				left: 20px;
+				text-decoration: none;
+				color: #000;
+				font-weight: bold;
+				display: flex;
+				align-items: center;
+			}
+			.home-link:hover {
+				text-decoration: underline;
+			}
+			.home-link::before {
+				content: "←";
+				margin-right: 8px;
+			}
+		</style>
+	</head>
+	<body>
+		<a href="../index.html" class="home-link">Back to Examples</a>
+		<header>
+			<h1>Class-Based Clock Component</h1>
+			<p>Demonstrating lifecycle methods and state management</p>
+		</header>
+		<main>
+			<!-- The Clock component will be mounted here -->
+		</main>
+		<script type="module" src="./clock.js"></script>
+	</body>
+</html>
