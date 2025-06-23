@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GlyphUI - Patcher Demo</title>
+		<link
+			href="https://api.fontsource.org/css/geist-mono"
+			rel="stylesheet"
+		/>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				font-family: "Geist Mono", monospace;
+				background: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				color: #000;
+			}
+			header {
+				padding: 20px;
+				text-align: center;
+				margin-bottom: 20px;
+			}
+			h1 {
+				font-size: 2.5rem;
+				margin-bottom: 10px;
+			}
+			main {
+				width: 90%;
+				max-width: 600px;
+				background: #fff;
+				border-radius: 8px;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+				overflow: hidden;
+				margin-bottom: 40px;
+			}
+			button {
+				font-size: 1.2rem;
+				padding: 10px 20px;
+				margin: 0 10px;
+				border: 2px solid #000;
+				background: #fff;
+				color: #000;
+				cursor: pointer;
+				transition: background-color 0.2s ease, transform 0.2s ease,
+					box-shadow 0.2s ease;
+			}
+			button:hover {
+				background: #000;
+				color: #fff;
+				transform: translateY(-2px);
+				box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+			}
+			.home-link {
+				position: absolute;
+				top: 20px;
+				left: 20px;
+				text-decoration: none;
+				color: #000;
+				font-weight: bold;
+				display: flex;
+				align-items: center;
+			}
+			.home-link:hover {
+				text-decoration: underline;
+			}
+			.home-link::before {
+				content: "←";
+				margin-right: 8px;
+			}
+		</style>
+	</head>
+	<body>
+		<a href="../index.html" class="home-link">Back to Examples</a>
+		<header>
+			<h1>Virtual DOM Patcher Demo</h1>
+			<p>See how GlyphUI efficiently updates only what changes</p>
+		</header>
+		<main>
+			<!-- The PatcherDemo component will be mounted here -->
+		</main>
+		<script type="module" src="./patcher.js"></script>
+	</body>
+</html>
