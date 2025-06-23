@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GlyphUI - useCallback Performance Example</title>
+		<link
+			href="https://api.fontsource.org/css/geist-mono"
+			rel="stylesheet"
+		/>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				font-family: "Geist Mono", monospace;
+				background: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				color: #000;
+			}
+			header {
+				padding: 20px;
+				text-align: center;
+				margin-bottom: 20px;
+			}
+			h1 {
+				font-size: 2.5rem;
+				margin-bottom: 10px;
+			}
+			main {
+				width: 90%;
+				max-width: 800px;
+				background: #fff;
+				border-radius: 8px;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+				overflow: hidden;
+				margin-bottom: 40px;
+			}
+			.parent-container {
+				padding: 30px;
+				transition: background-color 0.3s ease, color 0.3s ease;
+			}
+			.parent-container.light {
+				background-color: #fff;
+				color: #000;
+			}
+			.parent-container.dark {
+				background-color: #1a1a1a;
+				color: #fff;
+			}
+			.count-display {
+				margin-bottom: 30px;
+				padding: 20px;
+				border-radius: 8px;
+				background-color: rgba(0, 0, 0, 0.05);
+				text-align: center;
+			}
+			.count-display h2 {
+				margin-bottom: 15px;
+			}
+			.count-display p {
+				font-size: 1.5rem;
+				margin-bottom: 15px;
+			}
+			.buttons-container {
+				margin-bottom: 30px;
+				padding: 20px;
+				border-radius: 8px;
+				background-color: rgba(0, 0, 0, 0.05);
+			}
+			.buttons-container h3 {
+				margin-bottom: 10px;
+			}
+			.explanation {
+				font-size: 0.9rem;
+				color: #666;
+				margin-bottom: 20px;
+			}
+			.dark .explanation {
+				color: #aaa;
+			}
+			button {
+				display: block;
+				width: 100%;
+				padding: 12px;
+				margin-bottom: 10px;
+				border: none;
+				border-radius: 5px;
+				font-family: inherit;
+				font-size: 1rem;
+				cursor: pointer;
+				transition: all 0.2s ease;
+			}
+			.increment-button {
+				background-color: #0070f3;
+				color: white;
+			}
+			.theme-button {
+				background-color: #6c757d;
+				color: white;
+			}
+			.reset-button {
+				background-color: #dc3545;
+				color: white;
+			}
+			.non-memoized-button {
+				background-color: #fd7e14;
+				color: white;
+			}
+			button:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			}
+			.info-panel {
+				background: #f0f8ff;
+				padding: 20px;
+				border-radius: 8px;
+				border-left: 4px solid #0070f3;
+			}
+			.dark .info-panel {
+				background: #1e2a3a;
+				border-left: 4px solid #3291ff;
+			}
+			.info-panel h3 {
+				margin-bottom: 10px;
+				color: #0070f3;
+			}
+			.dark .info-panel h3 {
+				color: #3291ff;
+			}
+			.info-panel p {
+				line-height: 1.6;
+			}
+			.home-link {
+				position: absolute;
+				top: 20px;
+				left: 20px;
+				text-decoration: none;
+				color: #000;
+				font-weight: bold;
+				display: flex;
+				align-items: center;
+			}
+			.home-link:hover {
+				text-decoration: underline;
+			}
+			.home-link::before {
+				content: "←";
+				margin-right: 8px;
+			}
+		</style>
+	</head>
+	<body>
+		<a href="../index.html" class="home-link">Back to Examples</a>
+		<header>
+			<h1>useCallback Performance Demo</h1>
+			<p>Memoizing functions for child components</p>
+		</header>
+		<main>
+			<!-- The ParentComponent will be mounted here -->
+		</main>
+		<script type="module" src="./callback-demo.js"></script>
+	</body>
+</html>

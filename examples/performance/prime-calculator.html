@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GlyphUI - useMemo Performance Example</title>
+		<link
+			href="https://api.fontsource.org/css/geist-mono"
+			rel="stylesheet"
+		/>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				font-family: "Geist Mono", monospace;
+				background: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				color: #000;
+			}
+			header {
+				padding: 20px;
+				text-align: center;
+				margin-bottom: 20px;
+			}
+			h1 {
+				font-size: 2.5rem;
+				margin-bottom: 10px;
+			}
+			main {
+				width: 90%;
+				max-width: 800px;
+				background: #fff;
+				border-radius: 8px;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+				overflow: hidden;
+				margin-bottom: 40px;
+				padding: 20px;
+			}
+			.calculator-container {
+				padding: 20px;
+			}
+			.calculator-title {
+				font-size: 1.8rem;
+				margin-bottom: 20px;
+				text-align: center;
+			}
+			.result-display {
+				background: #f8f9fa;
+				padding: 20px;
+				border-radius: 8px;
+				margin-bottom: 20px;
+				text-align: center;
+				font-size: 1.2rem;
+			}
+			.highlight {
+				font-weight: bold;
+				color: #0070f3;
+			}
+			hr {
+				margin: 30px 0;
+				border: none;
+				border-top: 1px solid #eaeaea;
+			}
+			.controls {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 20px;
+				margin-bottom: 30px;
+			}
+			.control-group {
+				padding: 20px;
+				border: 1px solid #eaeaea;
+				border-radius: 8px;
+			}
+			.control-group h3 {
+				margin-bottom: 10px;
+			}
+			.explanation {
+				font-size: 0.9rem;
+				color: #666;
+				margin-bottom: 15px;
+			}
+			.control-button {
+				width: 100%;
+				padding: 12px;
+				border: none;
+				border-radius: 5px;
+				font-family: inherit;
+				font-size: 1rem;
+				cursor: pointer;
+				margin-bottom: 10px;
+				transition: all 0.2s ease;
+			}
+			.control-button.slow {
+				background: #ff4d4f;
+				color: white;
+			}
+			.control-button.fast {
+				background: #52c41a;
+				color: white;
+			}
+			.control-button:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			}
+			.limit-display,
+			.counter-display {
+				font-size: 1.1rem;
+				text-align: center;
+				margin-top: 10px;
+			}
+			.info-panel {
+				background: #f0f8ff;
+				padding: 20px;
+				border-radius: 8px;
+				border-left: 4px solid #0070f3;
+			}
+			.info-panel h3 {
+				margin-bottom: 10px;
+				color: #0070f3;
+			}
+			.info-panel p {
+				line-height: 1.6;
+			}
+			.home-link {
+				position: absolute;
+				top: 20px;
+				left: 20px;
+				text-decoration: none;
+				color: #000;
+				font-weight: bold;
+				display: flex;
+				align-items: center;
+			}
+			.home-link:hover {
+				text-decoration: underline;
+			}
+			.home-link::before {
+				content: "←";
+				margin-right: 8px;
+			}
+			@media (max-width: 768px) {
+				.controls {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<a href="../index.html" class="home-link">Back to Examples</a>
+		<header>
+			<h1>useMemo Performance Demo</h1>
+			<p>Memoizing expensive calculations for better performance</p>
+		</header>
+		<main>
+			<!-- The PrimeCalculator component will be mounted here -->
+		</main>
+		<script type="module" src="./prime-calculator.js"></script>
+	</body>
+</html>
