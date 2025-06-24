@@ -34,25 +34,22 @@ class PrimeCalculator extends Component {
 				initialState: {
 					numberLimit: 10000,
 					unrelatedState: 0,
-					largestPrime: null,
+					largestPrime: 2, // Initialize with a value
 					lastCalculatedLimit: 0,
 				},
 			}
 		);
+
+		// Bind methods
+		this.increaseLimit = this.increaseLimit.bind(this);
+		this.incrementCounter = this.incrementCounter.bind(this);
 	}
 
 	// Calculate the largest prime only when numberLimit changes
-	calculateLargestPrime() {
-		const { numberLimit, lastCalculatedLimit } = this.state;
-
-		// Only recalculate if the limit has changed
-		if (numberLimit !== lastCalculatedLimit) {
-			const largestPrime = findLargestPrime(numberLimit);
-			this.setState({
-				largestPrime,
-				lastCalculatedLimit: numberLimit,
-			});
-			return largestPrime;
+	calculateLargestPrime(numberLimit) {
+		// Only calculate if needed
+		if (numberLimit !== this.state.lastCalculatedLimit) {
+			return findLargestPrime(numberLimit);
 		}
 
 		return this.state.largestPrime;
@@ -61,12 +58,22 @@ class PrimeCalculator extends Component {
 	// Called when component is mounted
 	mounted() {
 		// Initial calculation
-		this.calculateLargestPrime();
+		const largestPrime = findLargestPrime(this.state.numberLimit);
+		this.setState({
+			largestPrime,
+			lastCalculatedLimit: this.state.numberLimit,
+		});
 	}
 
 	increaseLimit() {
-		this.setState({ numberLimit: this.state.numberLimit + 10000 });
-		// We'll recalculate in the render method
+		const newLimit = this.state.numberLimit + 10000;
+		const largestPrime = findLargestPrime(newLimit);
+
+		this.setState({
+			numberLimit: newLimit,
+			largestPrime,
+			lastCalculatedLimit: newLimit,
+		});
 	}
 
 	incrementCounter() {
@@ -75,20 +82,18 @@ class PrimeCalculator extends Component {
 	}
 
 	render(props, state) {
-		// This mimics the behavior of useMemo - only recalculate when dependency changes
-		const largestPrime = this.calculateLargestPrime();
-		const { numberLimit, unrelatedState } = state;
+		const { numberLimit, unrelatedState, largestPrime } = state;
 
 		return h("div", { class: "calculator-container" }, [
 			h("h2", { class: "calculator-title" }, ["Prime Number Calculator"]),
 
 			h("div", { class: "result-display" }, [
 				h("p", {}, [
-					`The largest prime below `,
-					h("span", { class: "highlight" }, [numberLimit]),
-					` is `,
-					h("span", { class: "highlight" }, [largestPrime]),
-					`.`,
+					"The largest prime below ",
+					h("span", { class: "highlight" }, [String(numberLimit)]),
+					" is ",
+					h("span", { class: "highlight" }, [String(largestPrime)]),
+					".",
 				]),
 			]),
 
@@ -104,12 +109,12 @@ class PrimeCalculator extends Component {
 						"button",
 						{
 							class: "control-button slow",
-							on: { click: () => this.increaseLimit() },
+							on: { click: this.increaseLimit },
 						},
 						["Increase Limit (Slow)"]
 					),
 					h("p", { class: "limit-display" }, [
-						`Current limit: ${numberLimit}`,
+						"Current limit: " + String(numberLimit),
 					]),
 				]),
 
@@ -122,12 +127,12 @@ class PrimeCalculator extends Component {
 						"button",
 						{
 							class: "control-button fast",
-							on: { click: () => this.incrementCounter() },
+							on: { click: this.incrementCounter },
 						},
 						["Increment Counter (Fast)"]
 					),
 					h("p", { class: "counter-display" }, [
-						`Counter: ${unrelatedState}`,
+						"Counter: " + String(unrelatedState),
 					]),
 				]),
 			]),

@@ -38,6 +38,13 @@ class ParentComponent extends Component {
 		// Memoized callbacks that don't change between renders
 		this.handleThemeToggle = this.handleThemeToggle.bind(this);
 		this.handleCounterReset = this.handleCounterReset.bind(this);
+		this.incrementCount = this.incrementCount.bind(this);
+
+		// Use a fixed callback for the non-memoized example
+		// In a real useCallback demo, this would be recreated on each render
+		this.nonMemoizedCallback = () => {
+			console.log("Non-memoized callback executed");
+		};
 	}
 
 	// This method is bound in the constructor, so its reference doesn't change
@@ -55,28 +62,31 @@ class ParentComponent extends Component {
 		this.setState({ count: 0 });
 	}
 
-	// This method creates a new function on every render
-	// This demonstrates what happens without useCallback
-	getNonMemoizedCallback() {
-		return () => console.log("This function is created on every render");
-	}
-
 	incrementCount() {
 		this.setState({ count: this.state.count + 1 });
+		// Log to show that a new function would be created here in a hooks-based component
+		console.log(
+			"Count updated, in a hooks component this would create a new function"
+		);
 	}
 
 	render(props, state) {
 		const { count, theme } = state;
 
+		// Log to simulate the creation of a new function on each render
+		console.log(
+			"Render called - in a hooks component, non-memoized functions would be recreated here"
+		);
+
 		return h("div", { class: `parent-container ${theme}` }, [
 			h("div", { class: "count-display" }, [
 				h("h2", {}, ["Counter Demo"]),
-				h("p", {}, [`Count: ${count}`]),
+				h("p", {}, ["Count: " + String(count)]),
 				h(
 					"button",
 					{
 						class: "increment-button",
-						on: { click: () => this.incrementCount() },
+						on: { click: this.incrementCount },
 					},
 					["Increment Count"]
 				),
@@ -108,14 +118,14 @@ class ParentComponent extends Component {
 					["Reset Counter (Memoized)"]
 				),
 
-				// This button creates a new function on every render
+				// This button uses a callback that would be recreated on each render in a hooks component
 				createComponent(
 					MemoizedButton,
 					{
 						className: "non-memoized-button",
-						onButtonClick: this.getNonMemoizedCallback(),
+						onButtonClick: this.nonMemoizedCallback,
 					},
-					["Non-memoized Button"]
+					["Non-memoized Button (Simulated)"]
 				),
 			]),
 
@@ -125,6 +135,8 @@ class ParentComponent extends Component {
 					"Binding methods in the constructor preserves their identity across renders.",
 					h("br", {}),
 					"This prevents unnecessary re-renders of child components that receive the function as a prop.",
+					h("br", {}),
+					"The non-memoized button simulates what would happen in a hooks-based component.",
 				]),
 			]),
 		]);
